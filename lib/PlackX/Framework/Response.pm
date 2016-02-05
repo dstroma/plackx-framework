@@ -60,5 +60,17 @@ sub post_response_callbacks {
   return $self->{_post_response_callbacks};
 }
 
+sub stash {
+  my $self = shift;
+  die "$self - stash not set up" unless $self->{stash} and ref $self->{stash};
+  return $self->{stash};
+}
+
+sub set_stash {
+  my $self = shift;
+  my $hash = shift;
+  $self->{stash} = $hash;
+}
+
 1;
 
