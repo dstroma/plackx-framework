@@ -2,6 +2,8 @@ package PlackX::Framework::Template;
 
 use warnings;
 use strict;
+use Template;
+our %tt_objects;
 
 1;
 
@@ -17,9 +19,9 @@ PlackX::Framework::Template->new($tt_object, $response);
 
 sub new {
   my $class    = shift;
-  my $tto      = shift;
   my $response = shift;
   my $self     = bless {}, $class;
+  my $tto      = $class->tt_object(); #($tt_opts);
 
   die 'Usage: ->new($template_toolkit_object, $response_object' unless $tto and $response and ref $tto and ref $response;
 
@@ -28,7 +30,20 @@ sub new {
 
   return $self;
 }
-  
+
+sub tt_object {
+  my $class_or_self = shift;
+  my $class = ref $class_or_self ? ref $class_or_self : $class_or_self;
+  my $opts  = $class->tt_options;
+  $tt_objects{$class}{$opts} ||= Template->new($opts) || die $Template::ERROR; 
+  return $tt_objects{$class}{$opts};
+}
+
+sub tt_options {
+  my $class = shift;
+  return {};
+}
+
 sub param {
   my $self       = shift;
   my $name       = shift;

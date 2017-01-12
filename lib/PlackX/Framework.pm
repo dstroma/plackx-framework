@@ -9,8 +9,28 @@ use PlackX::Framework::Response;
 use PlackX::Framework::Router;
 use PlackX::Framework::Template;
 use PlackX::Framework::URI;
+use PlackX::Framework::App;
+
+sub generate_classes {
+  my $self_class   = shift;
+  my $wanted_class = shift;
+  for my $i (qw/Request Response Router Template URI App Controller/) {
+    eval "package $wanted_class\::$i; use $self_class\::$i; use base '$self_class\::$i'; use strict; use warnings; 1;" or die $@;
+  }
+  return;
+}
+
+sub import {
+  my $class  = shift;
+  my %params = @_;
+  if ($params{'generate_classes'}) {
+    $class->generate_classes($params{'generate_classes'});
+  }
+  return;
+}
 
 1;
+
 __END__
 # Below is stub documentation for your module. You'd better edit it!
 

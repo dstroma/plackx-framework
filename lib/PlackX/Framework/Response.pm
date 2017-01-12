@@ -19,6 +19,16 @@ sub new {
   return bless $self, $class;
 }
 
+sub template {
+  return shift->{_template};
+}
+
+sub set_template {
+  my $self = shift;
+  my $template_object = shift;
+  return $self->{_template} = $template_object;
+}
+
 sub no_cache {
   my $self = shift;
   if (@_ > 0) {
