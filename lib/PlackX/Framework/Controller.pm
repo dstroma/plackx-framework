@@ -57,7 +57,7 @@ sub _get_app_namespace {
 Examples:
 
 package My::App::Controller;
-use base 'PlackX::Framework::Controller';
+use 'PlackX::Framework::Controller';
 
 filter => sub {
   my $request  = shift;
