@@ -72,5 +72,13 @@ sub set_stash {
   $self->{stash} = $hash;
 }
 
+sub template {
+  my $self = shift;
+  if (@_) {
+    $self->{_template} = shift;
+  }
+  return $self->{_template};
+}
+
 1;
 

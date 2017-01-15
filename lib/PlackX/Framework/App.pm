@@ -2,23 +2,22 @@ package PlackX::Framework::App;
 
 use strict;
 use warnings;
+use Scalar::Util qw(blessed);
 
 sub app {
-  my $class  = shift;
-  my $env    = shift;
+  my $class         = shift;
+  my $env_or_req    = shift;
+  my $app_namespace = $class->app_namespace;
 
-  $class =~ m/^(.+)\:\:App$/;
-  my $app_namespace = $1;
-
+  my $request  = $class->env_or_req_to_req($env_or_req);
   my $router   = "$app_namespace\::Router"->router;
-  my $request  = "$app_namespace\::Request"->new($env);
   my $response = "$app_namespace\::Response"->new;
   my $template = "$app_namespace\::Template"->new($response);
   my $stash    = {};
 
   $request->set_stash($stash);
   $response->set_stash($stash);
-  $response->set_template($template);
+  $response->template($template);
 
   $response->status(200);
   $response->content_type('text/html');
@@ -42,12 +41,37 @@ sub app {
   }
   
   return $response if ref $response eq 'ARRAY';
-  return $response->finalize;
+  return $response->finalize if ref $response;
+  return [404, [], ['Not Found']];
 }
 
 sub to_app {
   my $class = shift;
   return sub { $class->app(shift) };
+}
+
+sub app_namespace {
+  my $class = shift;
+  $class =~ m/^(.+)\:\:App$/;
+  my $app_namespace = $1;
+  return $app_namespace;
+}
+
+sub env_or_req_to_req {
+  my $class         = shift;
+  my $env_or_req    = shift;
+  my $app_namespace = $class->app_namespace;
+  my $req;
+
+  if (ref $env_or_req and ref $env_or_req eq 'HASH') {
+    $req = "$app_namespace\::Request"->new($env_or_req);
+  } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
+    $req = $env_or_req;
+  } else {
+    die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
+  }
+
+  return $req;
 }
 
 1;

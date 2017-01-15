@@ -22,6 +22,11 @@ sub filter {
   my $when      = shift;
   my $coderef   = shift;
   my ($package) = caller;
+
+  unless ($when eq 'before' or $when eq 'after') {
+    die "usage: filter 'before' => sub {} or filter 'after' => sub {}";
+  }
+
   push @{$package->_get_filters($when)}, { subref => $coderef, controller => $package, 'when' => $when };
   return;
 }
@@ -59,7 +64,7 @@ Examples:
 package My::App::Controller;
 use 'PlackX::Framework::Controller';
 
-filter => sub {
+filter 'before' => sub {
   my $request  = shift;
   my $response = shift;
   

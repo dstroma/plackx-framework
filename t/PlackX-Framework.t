@@ -16,3 +16,9 @@ BEGIN { use_ok('PlackX::Framework') };
 # Insert your test code below, the Test::More module is use()ed here so read
 # its man page ( perldoc Test::More ) for help writing this test script.
 
+package My::Test::Project;
+use PlackX::Framework;
+
+PlackX::Framework->generate_subclasses('My::Test::Project', qw/:all/);
+
+

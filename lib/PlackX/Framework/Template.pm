@@ -11,22 +11,28 @@ SYNOPSIS
 
 my $tt_object = Template->new(...);
 my $response  = Plack::Response->new(...);
-PlackX::Framework::Template->new($tt_object, $response);
+PlackX::Framework::Template->new($response);
 
 =cut
 
 sub new {
   my $class    = shift;
-  my $tto      = shift;
   my $response = shift;
   my $self     = bless {}, $class;
 
-  die 'Usage: ->new($template_toolkit_object, $response_object' unless $tto and $response and ref $tto and ref $response;
+  die 'Usage: ->new($response_object)' unless $response and ref $response;
 
-  $self->{__template_toolkit_object} = $tto;
+  my $tso = $class->get_template_system_object();
+  die 'Not a valid template system object' unless $tso and ref $tso;
+
+  $self->{__template_system_object} = $tso;
   $self->{__response} = $response;
 
   return $self;
+}
+
+sub get_template_system_object {
+  die 'Method get_template_system_object() must be implemented by a subclass.';
 }
   
 sub param {
@@ -37,12 +43,20 @@ sub param {
 }
 
 sub add_params {
+  # Yes, it's identical to set()
   my $self   = shift;
   my %params = @_;
   @{$self}{keys %params} = values %params;
   return $self;
 }
-*set = \&add_params;
+
+sub set {
+  # Yes, it's identical to add_params()
+  my $self   = shift;
+  my %params = @_;
+  @{$self}{keys %params} = values %params;
+  return $self;
+}
 
 sub use {
   my $self  = shift;
@@ -51,13 +65,16 @@ sub use {
 }
 
 sub output {
+  # This method assumes that template_system_object is a Template Toolkit object
+  # or another object with a compatible API. If your choose a different
+  # templating system, you should override this method in your subclass.
   my $self     = shift;
   my $filename = shift || $self->{__template_filename};
 
   my %unblessed_hash = ();
   @unblessed_hash{keys %$self} = values %$self;
 
-  my $tto = $self->{__template_toolkit_object};
+  my $tto = $self->{__template_system_object};
   $tto->process($filename, \%unblessed_hash, $self->{__response}) || die 'Unable to process template: ', $tto->error(), $!;
 }
 
