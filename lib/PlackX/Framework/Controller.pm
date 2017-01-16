@@ -35,7 +35,7 @@ sub filter {
     die "usage: filter 'before' => sub {} or filter 'after' => sub {}";
   }
 
-  push @{$package->_get_filters($when)}, { subref => $coderef, controller => $package, 'when' => $when };
+  push @{_get_filters($package, $when)}, { subref => $coderef, controller => $package, 'when' => $when };
   return;
 }
 
