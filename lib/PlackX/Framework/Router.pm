@@ -3,7 +3,8 @@ use base 'Router::Simple';
 
 our $router;
 sub router {
-  $router ||= __PACKAGE__->new;
+  my $class = shift;
+  $router ||= $class->new;
 }
 
 sub add_route {
