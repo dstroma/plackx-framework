@@ -4,12 +4,12 @@ use 5.010000;
 use strict;
 use warnings;
 
-use PlackX::Framework::App;
-use PlackX::Framework::Request;
-use PlackX::Framework::Response;
-use PlackX::Framework::Router;
-use PlackX::Framework::Template;
-use PlackX::Framework::URI;
+use PlackX::Framework::App ();
+use PlackX::Framework::Request ();
+use PlackX::Framework::Response ();
+use PlackX::Framework::Router ();
+use PlackX::Framework::Template ();
+use PlackX::Framework::URI ();
 use PlackX::Framework::Controller ();
 
 our @children = qw/App Request Response Router Template URI Controller/;
@@ -19,19 +19,31 @@ sub import {
   # if they do not exist they will be automatically generated
   my $class  = shift;
   my $caller = caller(0);
-  my $loaded_modules = load_framework($caller);
-  foreach my $i (keys %$loaded_modules) {
-    unless ($loaded_modules->{$i}) {
-      eval "package $caller::$i; use parent 'PlackX::Framework::$i'; 1;" or die $@;
-   }
+
+  # Load the modules
+  my $load_success = load_framework($caller);
+
+  # Special Case - FORCE creation of Controller so that we can import properly
+  $load_success->{Controller} = undef;
+
+  # Check if loaded; if not, automagically generate the classes
+  foreach my $i (@children) {
+    unless ($load_success->{$i}) {
+      generate_class("$caller::$i" => "PlackX::Framework::$i");
+    }
   }
 }
 
+sub generate_class {
+  my ($new_class, $base_class) = @_;
+  eval "package $new_class; use parent '$base_class'; use $base_class; 1;" or die $@; 
+}
+
 sub load_framework {
-  my $class = shift;
+  my $class   = shift;
   my %success = ();
   for my $mod (@children) {
-    $success{$mod} = eval "require $mod;";
+    $success{$mod} = eval "require $class::$mod;";
   }
   return \%success;
 }

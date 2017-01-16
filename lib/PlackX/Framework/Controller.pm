@@ -9,9 +9,10 @@ our $filters = {};
 
 sub import {
   my $class = $_[0];
-  #eval "package $class; our \@EXPORT = qw/request filter/" or die "ERRRRRRR $@";
-  no strict 'refs';
-  push @{"$class\::EXPORT"}, qw/request filter/;
+  {
+    no strict 'refs';
+    push @{"$class\::EXPORT"}, qw/request filter/;
+  }
   $class->export_to_level(1, @_);
 }
 
