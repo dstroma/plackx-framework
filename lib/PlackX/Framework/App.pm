@@ -25,7 +25,7 @@ sub app {
 
   if (my $m = $router->match($env)) {
     my $controller = $m->{controller};
-    my $response_f = $controller->execute_filters('before', $request, $response);
+    my $response_f = PlackX::Framework::Controller::execute_filters($controller, 'before', $request, $response);
     if ($response_f and ref $response_f) {
       $response = $response_f;
     } else {
@@ -37,7 +37,7 @@ sub app {
         die "Route match found but not action or subref";
       }
     }
-    my $response_f2 = $controller->execute_filters('after', $request, $response);
+    my $response_f2 = PlackX::Framework::Controller::execute_filters($controller, 'after', $request, $response);
     $response = $response_f2 if $response_f2 and ref $response_f2;
   }
   

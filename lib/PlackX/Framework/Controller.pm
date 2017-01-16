@@ -45,7 +45,7 @@ sub execute_filters {
   my $when     = shift;
   my $request  = shift;
   my $response = shift;
-  my $filters  = $class->_get_filters($when);
+  my $filters  = _get_filters($class, $when);
   return unless ref $filters;
   foreach my $filter (@$filters) {
     my $response = $filter->{subref}->($request, $response);
