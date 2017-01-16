@@ -9,6 +9,7 @@ sub app {
   my $env_or_req    = shift;
   my $app_namespace = $class->app_namespace;
 
+  my $env      = $class->env_or_req_to_env($env_or_req);
   my $request  = $class->env_or_req_to_req($env_or_req);
   my $router   = "$app_namespace\::Router"->router;
   my $response = "$app_namespace\::Response"->new;
@@ -61,17 +62,28 @@ sub env_or_req_to_req {
   my $class         = shift;
   my $env_or_req    = shift;
   my $app_namespace = $class->app_namespace;
-  my $req;
 
   if (ref $env_or_req and ref $env_or_req eq 'HASH') {
-    $req = "$app_namespace\::Request"->new($env_or_req);
+    return "$app_namespace\::Request"->new($env_or_req);
   } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
-    $req = $env_or_req;
+    return $env_or_req;
   } else {
     die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
   }
+}
 
-  return $req;
+sub env_or_req_to_env {
+  my $class         = shift;
+  my $env_or_req    = shift;
+  my $app_namespace = $class->app_namespace;
+
+  if (ref $env_or_req and ref $env_or_req eq 'HASH') {
+    return $env_or_req;
+  } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
+    return $env_or_req->env;
+  } else {
+    die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
+  }
 }
 
 1;

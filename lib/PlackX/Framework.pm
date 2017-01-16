@@ -12,29 +12,67 @@ use PlackX::Framework::Template;
 use PlackX::Framework::URI;
 use PlackX::Framework::Controller ();
 
-our %allowed_modules_for_subclass_generator = (
-  App => 1,
-  Router => 1,
-  Request => 1,
-  Response => 1,
-  Template => 1,
-  URI => 1,
-  Controller => 1,
-);
+our @children = qw/App Request Response Router Template URI Controller/;
 
-sub generate_subclasses {
-  my $self    = shift;
-  my $base    = shift;
-  my $modules = shift;
-
-  if ($modules and not ref $modules and $modules eq ':all') {
-    $modules = [ keys %allowed_modules_for_subclass_generator ];
-  }
-
-  for my $i (@$modules) {
-    eval "package $base::$i; use base 'PlackX::Framework::$i'; 1;" or die $@;
+sub import {
+  # using this module will load your application's appropriate modules;
+  # if they do not exist they will be automatically generated
+  my $class  = shift;
+  my $caller = caller(0);
+  my $loaded_modules = load_framework($caller);
+  foreach my $i (keys %$loaded_modules) {
+    unless ($loaded_modules->{$i}) {
+      eval "package $caller::$i; use parent 'PlackX::Framework::$i'; 1;" or die $@;
+   }
   }
 }
+
+sub load_framework {
+  my $class = shift;
+  my %success = ();
+  for my $mod (@children) {
+    $success{$mod} = eval "require $mod;";
+  }
+  return \%success;
+}
+
+#our %allowed_modules_for_subclass_generator = (
+#  App => 1,
+#  Router => 1,
+#  Request => 1,
+#  Response => 1,
+#  Template => 1,
+#  URI => 1,
+#  Controller => 1,
+#);
+#
+#sub import {
+#  my $class  = shift;
+#  my %params = @_;
+#  if ($params{'autogen'}) {
+#    my @modules_to_generate;
+#    if (ref $params{'autogen'}) {
+#      @modules_to_generate = @{$params{'autogen'}};
+#    } else {
+#      @modules_to_generate = ($params{'autogen'});
+#    }
+#    $class->gen_subclasses(@modules_to_generate);
+#  }
+#  $class->load_framework;
+#}
+#
+#sub gen_subclasses {
+#  my $class   = shift;
+#  my $modules = shift;
+#
+#  if ($modules and not ref $modules and $modules eq ':all') {
+#    $modules = [ keys %allowed_modules_for_subclass_generator ];
+#  }
+#
+#  for my $i (@$modules) {
+#    eval "package $class::$i; use parent 'PlackX::Framework::$i'; 1;" or die $@;
+#  }
+#}
 
 1;
 __END__

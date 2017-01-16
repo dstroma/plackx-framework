@@ -9,7 +9,6 @@ use strict;
 use warnings;
 
 use Test::More tests => 1;
-BEGIN { use_ok('PlackX::Framework') };
 
 #########################
 
@@ -17,8 +16,7 @@ BEGIN { use_ok('PlackX::Framework') };
 # its man page ( perldoc Test::More ) for help writing this test script.
 
 package My::Test::Project;
-use PlackX::Framework;
+main::use_ok('PlackX::Framework');
 
-PlackX::Framework->generate_subclasses('My::Test::Project', qw/:all/);
 
 
