@@ -41,6 +41,7 @@ sub print {
   my $self = shift;
   $self->{_size} += length($_) for @_;
   push @{$self->{_body}}, @_;
+  return $self;
 }
 
 sub size {
