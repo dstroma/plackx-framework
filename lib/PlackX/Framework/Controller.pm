@@ -6,14 +6,15 @@ use Exporter;
 use base 'Exporter';
 our @EXPORT = our @EXPORT_OK = qw/request filter $request $response/;
 our $filters = {};
-our $request;  # Obviously not thread-safe
-our $response; # Obviously not thread-safe
+#our $request;  # Obviously not thread-safe
+#our $response; # Obviously not thread-safe
 
 sub import {
   my $class = $_[0];
   {
     no strict 'refs';
-    push @{$class.'::EXPORT'}, qw/request filter $request $response/;
+    #push @{$class.'::EXPORT'}, qw/request filter $request $response/;
+    push @{$class.'::EXPORT'}, qw/request filter/;
   }
   $class->export_to_level(1, @_);
 

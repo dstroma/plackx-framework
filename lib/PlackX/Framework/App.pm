@@ -27,7 +27,7 @@ sub app {
   if (my $routematch = $router->match($env)) {
     $request->set_route_parameters($routematch);
     my $controller = $routematch->{controller};
-    _set_globals($routematch->{controller}, request => $request, response => $response);
+    #_set_globals($routematch->{controller}, request => $request, response => $response);
 
     my $response_f = PlackX::Framework::Controller::execute_filters($controller, 'before', $request, $response);
     if ($response_f and ref $response_f) {
@@ -90,10 +90,10 @@ sub env_or_req_to_env {
   }
 }
 
-sub _set_globals {
-  my ($class, %vars) = @_;
-  no strict 'refs';
-  ${"$class\::$_"} = $vars{$_} for keys %vars;
-}
+#sub _set_globals {
+#  my ($class, %vars) = @_;
+#  no strict 'refs';
+#  ${"$class\::$_"} = $vars{$_} for keys %vars;
+#}
 
 1;
