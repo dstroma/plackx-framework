@@ -41,7 +41,7 @@ sub route_param {
 
 sub route_parameters {
   my $self = shift;
-  return $self->{route_parameters};
+  return $self->{route_parameters} || {};
 }
 
 sub set_route_parameters {
