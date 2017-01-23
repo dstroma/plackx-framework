@@ -7,12 +7,13 @@ use Scalar::Util qw(blessed);
 sub app {
   my $class         = shift;
   my $env_or_req    = shift;
+  my $maybe_resp    = shift;
   my $app_namespace = $class->app_namespace;
 
   my $env      = $class->env_or_req_to_env($env_or_req);
   my $request  = $class->env_or_req_to_req($env_or_req);
   my $router   = "$app_namespace\::Router"->router;
-  my $response = "$app_namespace\::Response"->new;
+  my $response = $maybe_resp || "$app_namespace\::Response"->new;
   my $template = "$app_namespace\::Template"->new($response);
   my $stash    = {};
 
@@ -23,18 +24,21 @@ sub app {
   $response->status(200);
   $response->content_type('text/html');
 
-  if (my $m = $router->match($env)) {
-    my $controller = $m->{controller};
+  if (my $routematch = $router->match($env)) {
+    $request->set_route_parameters($routematch);
+    my $controller = $routematch->{controller};
+    _set_globals($routematch->{controller}, request => $request, response => $response);
+
     my $response_f = PlackX::Framework::Controller::execute_filters($controller, 'before', $request, $response);
     if ($response_f and ref $response_f) {
       $response = $response_f;
     } else {
-      if ($m->{subref}) {
-        $response = $m->{subref}->($request, $response);
-      } elsif (my $action = $m->{action}) {
-        $response = $controller->$action(%$m);
+      if ($routematch->{subref}) {
+        $response = $routematch->{subref}->($request, $response);
+      } elsif (my $action = $routematch->{action}) {
+        $response = $controller->$action(%$routematch); #backward-compat
       } else {
-        die "Route match found but not action or subref";
+        die "Route match found but no action or subref";
       }
     }
     my $response_f2 = PlackX::Framework::Controller::execute_filters($controller, 'after', $request, $response);
@@ -84,6 +88,12 @@ sub env_or_req_to_env {
   } else {
     die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
   }
+}
+
+sub _set_globals {
+  my ($class, %vars) = @_;
+  no strict 'refs';
+  ${"$class\::$_"} = $vars{$_} for keys %vars;
 }
 
 1;

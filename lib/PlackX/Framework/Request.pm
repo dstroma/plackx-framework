@@ -33,5 +33,22 @@ sub set_stash {
   $self->{stash} = $hash;
 }
 
+sub route_param {
+  my $self = shift;
+  my $name = shift;
+  return $self->{route_parameters}{$name};
+}
+
+sub route_parameters {
+  my $self = shift;
+  return $self->{route_parameters};
+}
+
+sub set_route_parameters {
+  my $self = shift;
+  my $params_hashref = shift;
+  $self->{route_parameters} = $params_hashref;
+}
+
 1;
 
