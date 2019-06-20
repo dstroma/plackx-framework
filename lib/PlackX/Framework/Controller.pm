@@ -60,13 +60,19 @@ sub request {
 sub filter {
   my $when      = shift;
   my $coderef   = shift;
+  my @slurp     = @_;
   my ($package) = caller;
 
   unless ($when eq 'before' or $when eq 'after') {
     die "usage: filter 'before' => sub {} or filter 'after' => sub {}";
   }
 
-  push @{_get_filters($package, $when)}, { subref => $coderef, controller => $package, 'when' => $when };
+  push @{_get_filters($package, $when)}, {
+    subref     => $coderef,
+    controller => $package,
+    'when'     => $when,
+    params     => \@slurp
+  };
   return;
 }
 
@@ -78,7 +84,7 @@ sub execute_filters {
   my $filters  = _get_filters($class, $when);
   return unless ref $filters;
   foreach my $filter (@$filters) {
-    my $response = $filter->{subref}->($request, $response);
+    my $response = $filter->{subref}->($request, $response, @{$filter->{params}});
     return $response if $response and ref $response;
   }
   return;
