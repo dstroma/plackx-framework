@@ -6,8 +6,6 @@ use Exporter;
 use base 'Exporter';
 our @EXPORT = our @EXPORT_OK = qw/request filter $request $response/;
 our $filters = {};
-#our $request;  # Obviously not thread-safe
-#our $response; # Obviously not thread-safe
 
 sub import {
   my $class = $_[0];
@@ -24,27 +22,6 @@ sub import {
   #feature->import('signatures');
   #warnings->unimport('experimental::signatures');
 }
-
-#sub install_dsl_and_request_response_globals {
-#  my $class = shift;
-#  install_dsl($class);
-#  install_request_response_globals($class);
-#}
-
-#sub install_dsl {
-#  my $class = shift;
-#  no strict 'refs';
-#  *{$class . '::request'} = \&request;
-#  *{$class . '::filter'}  = \&filter;
-#}
-
-#sub install_request_response_globals {
-#  my $class = shift;
-#  no strict 'refs';
-#  my ($var1, $var2);
-#  *{$class . '::request'}  = \${$class . '::request'};  # Obviously not thread-safe
-#  *{$class . '::response'} = \${$class . '::response'}; # Obviously not thread-safe
-#}
 
 sub request {
   my $route     = shift;
