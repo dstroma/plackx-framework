@@ -12,17 +12,28 @@ sub app {
 
   my $env      = $class->env_or_req_to_env($env_or_req);
   my $request  = $class->env_or_req_to_req($env_or_req);
-  my $router   = "$app_namespace\::Router"->router;
   my $response = $maybe_resp || "$app_namespace\::Response"->new;
   my $template = "$app_namespace\::Template"->new($response);
   my $stash    = {};
 
+  $request->set_app_class($class);
   $request->set_stash($stash);
   $response->set_stash($stash);
   $response->template($template);
 
+  # Set response defaults
   $response->status(200);
   $response->content_type('text/html');
+
+  return $class->route($request, $response);
+}
+
+sub route {
+  my $class    = shift;
+  my $request  = shift;
+  my $response = shift;
+  my $env      = $request->env;
+  my $router   = $class->app_namespace . "::Router"->router;
 
   if (my $routematch = $router->match($env)) {
     $request->set_route_parameters($routematch);
@@ -45,8 +56,20 @@ sub app {
     $response = $response_f2 if $response_f2 and ref $response_f2;
   }
   
-  return $response if ref $response eq 'ARRAY';
-  return $response->finalize if ref $response;
+  return $class->not_found_response unless $response and ref $response;
+  return ref $response eq 'ARRAY' ? $response : $response->finalize;
+}
+
+sub reroute {
+  my $class   = shift;
+  my $request = shift;
+  my $where   = shift;
+
+  $request->{env}{'PATH_INFO'} = $where;
+  $class->app($request);
+}
+
+sub not_found_response {
   return [404, [], ['Not Found']];
 }
 

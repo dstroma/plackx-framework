@@ -21,6 +21,23 @@ sub is_mobile {
   return $request->{is_mobile};
 }
 
+sub set_app_class {
+  my $self = shift;
+  my $app_class = shift;
+  $self->{app_class} = $app_class;
+}
+
+sub app_class {
+  my $self = shift;
+  return $self->{app_class};
+}
+
+sub reroute {
+  my $self  = shift;
+  my $where = shift;
+  return $self->app_class->reroute($self, $where);
+}
+
 sub stash {
   my $self = shift;
   die "$self - stash not set up" unless $self->{stash} and ref $self->{stash};
