@@ -29,12 +29,12 @@ sub import {
   # Check if loaded; if not, automagically generate the classes
   foreach my $i (@children) {
     unless ($load_success->{$i}) {
-      generate_class("$caller::$i" => "PlackX::Framework::$i");
+      generate_subclass("$caller::$i" => "PlackX::Framework::$i");
     }
   }
 }
 
-sub generate_class {
+sub generate_subclass {
   my ($new_class, $base_class) = @_;
   eval "package $new_class; use parent '$base_class'; use $base_class; 1;" or die $@; 
 }
