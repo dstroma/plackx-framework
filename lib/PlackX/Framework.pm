@@ -48,44 +48,6 @@ sub load_framework {
   return \%success;
 }
 
-#our %allowed_modules_for_subclass_generator = (
-#  App => 1,
-#  Router => 1,
-#  Request => 1,
-#  Response => 1,
-#  Template => 1,
-#  URI => 1,
-#  Controller => 1,
-#);
-#
-#sub import {
-#  my $class  = shift;
-#  my %params = @_;
-#  if ($params{'autogen'}) {
-#    my @modules_to_generate;
-#    if (ref $params{'autogen'}) {
-#      @modules_to_generate = @{$params{'autogen'}};
-#    } else {
-#      @modules_to_generate = ($params{'autogen'});
-#    }
-#    $class->gen_subclasses(@modules_to_generate);
-#  }
-#  $class->load_framework;
-#}
-#
-#sub gen_subclasses {
-#  my $class   = shift;
-#  my $modules = shift;
-#
-#  if ($modules and not ref $modules and $modules eq ':all') {
-#    $modules = [ keys %allowed_modules_for_subclass_generator ];
-#  }
-#
-#  for my $i (@$modules) {
-#    eval "package $class::$i; use parent 'PlackX::Framework::$i'; 1;" or die $@;
-#  }
-#}
-
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!
