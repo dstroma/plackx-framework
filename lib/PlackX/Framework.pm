@@ -54,7 +54,7 @@ __END__
 
 =head1 NAME
 
-PlackX::Framework - A very thin framework for Plack-based web apps.
+PlackX::Framework - A thin framework for Plack-based web apps.
 
 
 =head1 SYNOPSIS
@@ -89,7 +89,7 @@ PlackX::Framework::Response;
 PlackX::Framework::Router;
 PlackX::Framework::Template;
 PlackX::Framework::URI;
-PlackX::Framework::Controller ();
+PlackX::Framework::Controller;
 
 The base PlackX::Framework module loads all of the required modules. It
 also allows your base application module to automatically generate all
@@ -106,12 +106,12 @@ the necessary subclasses of PlackX::Framework's modules automatically.
     PlackX::Framework->generate_sublcasses(qw/App Request Response Template URI/);
 
 The PlackX::Framework::App module supplies to methods, app and to_app which 
-returns the necessary coderef for inclusiong in a .psgi file.
+returns the necessary coderef for inclusion in a .psgi file.
 
     # Example application base class
     package My::Project;
     use PlackX::Framework;
-    PlackX::Framework->generate_sublcasses(qw/:all/); # Generates My::Project::App, among others.
+    PlackX::Framework->generate_sublcasses(':all'); # Generates My::Project::App, among others.
 
     # Example app.psgi
     use My::Project;
@@ -153,6 +153,7 @@ as the filter function.
 See PlackX::Framework::Controller for additional documentation on the request
 function.
 
+
 =head2 Filters
 
 You may decide you want to apply a filter before or after all requests in a 
@@ -170,13 +171,10 @@ controller. To do this, use the exported filter function.
         ...
     };
 
-If a before filter returns any true value that is a reference, it is assumed 
-to be a Plack/PSGI response and is returned to the app. The appropriate 
-controller action is not called. If a before filter returns any other value 
-(it is recommended your return a false value for future-proofing), request 
-processing is continued by calling the appropriate controller action as 
-normal.
-
+A before filter should return either a false value, or a reference that is
+a response object or PSGI response arrayref. The former will cause request
+processing to continue as normal, while the latter will abort processing
+and return the response.
 
 =head2 EXPORT
 
