@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Scalar::Util qw(blessed);
 
-sub app {
+sub handle_request {
   my $class         = shift;
   my $env_or_req    = shift;
   my $maybe_resp    = shift;
@@ -65,7 +65,7 @@ sub reroute {
   my $where   = shift;
 
   $request->{env}{'PATH_INFO'} = $where;
-  $class->app($request);
+  $class->handle_request($request);
 }
 
 sub not_found_response {
@@ -74,7 +74,7 @@ sub not_found_response {
 
 sub to_app {
   my $class = shift;
-  return sub { $class->app(shift) };
+  return sub { $class->handle_request(shift) };
 }
 
 sub app_namespace {
