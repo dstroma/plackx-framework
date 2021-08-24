@@ -100,6 +100,7 @@ filter 'before' => sub {
 };
 
 request '/index' => sub {
+  ...
   $template->render_index;
 };
 
@@ -107,8 +108,18 @@ request {get => '/index'} => sub {
   ...
 };
 
-request {post => '/index'} => sub {
+request {post => '/login'} => sub {
+  my $request  = shift;
+  my $response = shift;
+
+  # do some processing to log in a user..
   ...
+
+  # successful login
+  $request->redirect('/user/home');
+
+  # reroute the request
+  $request->reroute('/try_again');
 };
 
 request ['/list/user', '/user/list', '/users/list'] => sub {
