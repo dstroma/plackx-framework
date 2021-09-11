@@ -75,7 +75,7 @@ sub _get_filters {
 }
 
 sub _get_app_namespace {
-  $_[0] =~ m/^(.+)\:\:Controller\:\:.+$/;
+  $_[0] =~ m/^(.+)\:\:Controller/;
   return $1;
 }
 

@@ -1,6 +1,6 @@
 package Test::Controller;
 
-use lib '../lib/';
+use lib './lib/';
 use PlackX::Framework::Controller;
 use base 'PlackX::Framework::Controller';
 
