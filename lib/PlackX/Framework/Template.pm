@@ -25,8 +25,10 @@ sub new {
   my $tso = $class->get_template_system_object();
   die 'Not a valid template system object' unless $tso and ref $tso;
 
-  $self->{__template_system_object} = $tso;
-  $self->{__response} = $response;
+  $self->{template_system_object} = $tso;
+  $self->{response_object} = $response;
+  $self->{params} = {};
+  $self->{template} = undef;
 
   return $self;
 }
@@ -36,17 +38,17 @@ sub get_template_system_object {
 }
   
 sub param {
-  my $self       = shift;
-  my $name       = shift;
-  $self->{$name} = shift if scalar @_ > 0;
-  return $self->{$name};
+  my $self  = shift;
+  my $name  = shift;
+  $self->{params}{$name} = shift if @_ > 0;
+  return $self->{params}{$name};
 }
 
 sub add_params {
   # Yes, it's identical to set()
   my $self   = shift;
   my %params = @_;
-  @{$self}{keys %params} = values %params;
+  @{$self->{params}}{keys %params} = values %params;
   return $self;
 }
 
@@ -54,31 +56,30 @@ sub set {
   # Yes, it's identical to add_params()
   my $self   = shift;
   my %params = @_;
-  @{$self}{keys %params} = values %params;
+  @{$self->{params}}{keys %params} = values %params;
   return $self;
 }
 
 sub use {
-  my $self  = shift;
-  my $param = shift;
-  $self->{__template_filename} = $param;
+  my $self = shift;
+  my $tmpl = shift;
+  $self->{template} = $tmpl;
 }
 
 sub output {
   # This method assumes that template_system_object is a Template Toolkit object
-  # or another object with a compatible API. If your choose a different
+  # or another object with a similar process() method. If your choose a different
   # templating system, you should override this method in your subclass.
   my $self     = shift;
-  my $filename = shift || $self->{__template_filename};
+  my $filename = shift || $self->{template};
 
-  my %unblessed_hash = ();
-  @unblessed_hash{keys %$self} = values %$self;
-
-  my $tto = $self->{__template_system_object};
-  $tto->process($filename, \%unblessed_hash, $self->{__response}) || die 'Unable to process template: ', $tto->error(), $!;
+  my $t = $self->{__template_system_object};
+  $t->process($filename, $self->{params}, $self->{response_object}) || die 'Unable to process template: ', $t->error, $!;
 }
 
 sub render {
+  # This method outputs a template and returns the response object in one step
+  # (Should it actually be a method of the response object instead?)
   my $self = shift;
   $self->output(@_);
   return $self->{__response};
