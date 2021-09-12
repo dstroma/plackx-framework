@@ -3,6 +3,7 @@ package PlackX::Framework::App;
 use strict;
 use warnings;
 use Scalar::Util qw(blessed);
+use Try::Tiny;
 
 # Public class method
 sub to_app {
@@ -47,9 +48,12 @@ sub handle_request {
   $request->set_stash($stash);
   $response->set_stash($stash);
 
-  # Set up templating (TODO: check if module is loaded first, or wrap in an eval? In case templating is not used by this app)
-  my $template = "$app_namespace\::Template"->new($response);
-  $response->template($template); # TODO - Lazy load?
+  # Try to set up templating
+  # Do it lazily -- only if the MyApp::Template module is loaded
+  try {
+    my $template = ($app_namespace . '::Template')->new($response);
+    $response->template($template);
+  };
 
   # Set response defaults
   $response->status(200);

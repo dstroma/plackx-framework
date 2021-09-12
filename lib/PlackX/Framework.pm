@@ -12,7 +12,8 @@ use PlackX::Framework::Template ();
 use PlackX::Framework::URI ();
 use PlackX::Framework::Controller ();
 
-our @children = qw/App Request Response Router Template URI Controller/;
+our @auto_load   = qw(App Request Response Router Template URI Controller);
+our @auto_create = qw(App Request Response Router URI Controller);
 
 sub import {
   # using this module will load your application's appropriate modules;
@@ -27,7 +28,7 @@ sub import {
   $load_success->{Controller} = undef;
 
   # Check if loaded; if not, automagically generate the classes
-  foreach my $i (@children) {
+  foreach my $i (@auto_create) {
     unless ($load_success->{$i}) {
       generate_subclass("$caller::$i" => "PlackX::Framework::$i");
     }
@@ -42,7 +43,7 @@ sub generate_subclass {
 sub load_framework {
   my $class   = shift;
   my %success = ();
-  for my $mod (@children) {
+  for my $mod (@auto_load) {
     $success{$mod} = eval "require $class::$mod;";
   }
   return \%success;

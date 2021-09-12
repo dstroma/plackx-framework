@@ -16,16 +16,19 @@ PlackX::Framework::Template->new($response);
 =cut
 
 sub new {
-  my $class    = shift;
-  my $response = shift;
-  my $self     = bless {}, $class;
+  my $class     = shift;
+  my $response  = shift;
+  my $templater = shift;
+  my $self      = bless {}, $class;
 
   die 'Usage: ->new($response_object)' unless $response and ref $response;
 
-  my $tso = $class->get_template_system_object();
-  die 'Not a valid template system object' unless $tso and ref $tso;
+  unless ($templater) {
+    $templater = $class->get_template_system_object();
+    die 'Not a valid template system object' unless $templater and ref $templater;
+  }
 
-  $self->{template_system_object} = $tso;
+  $self->{template_system_object} = $templater;
   $self->{response_object} = $response;
   $self->{params} = {};
   $self->{template} = undef;
@@ -73,7 +76,7 @@ sub output {
   my $self     = shift;
   my $filename = shift || $self->{template};
 
-  my $t = $self->{__template_system_object};
+  my $t = $self->{template_system_object};
   $t->process($filename, $self->{params}, $self->{response_object}) || die 'Unable to process template: ', $t->error, $!;
 }
 
@@ -82,6 +85,6 @@ sub render {
   # (Should it actually be a method of the response object instead?)
   my $self = shift;
   $self->output(@_);
-  return $self->{__response};
+  return $self->{response_object};
 }
 

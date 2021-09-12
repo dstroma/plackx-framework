@@ -78,6 +78,9 @@ sub template {
   if (@_) {
     $self->{_template} = shift;
   }
+  if (!$self->{_template}) {
+    die "No template module loaded";
+  }
   return $self->{_template};
 }
 
