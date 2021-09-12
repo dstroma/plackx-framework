@@ -91,27 +91,13 @@ PlackX::Framework::Template;
 PlackX::Framework::URI;
 PlackX::Framework::Controller;
 
-The base PlackX::Framework module loads all of the required modules. It
-also allows your base application module to automatically generate all
-the necessary subclasses of PlackX::Framework's modules automatically.
+The base PlackX::Framework module automatically finds and loads all of
+the required modules. It will first attempt to find any subclasses in
+your namespace and load them. If a subclass of one of the above modules
+does not exist, it will automatically create an empty sublass for you.
 
-    # Example 1: Generate all subclasses
-    package My::Project;
-    use PlackX::Framework;
-    PlackX::Framework->generate_sublcasses(qw/:all/);
-
-    # Example 2: Generate just the subclasses you want
-    package My::Project;
-    use PlackX::Framework;
-    PlackX::Framework->generate_sublcasses(qw/App Request Response Template URI/);
-
-The PlackX::Framework::App module supplies to methods, app and to_app which 
+The PlackX::Framework::App module supplies the method to_app which 
 returns the necessary coderef for inclusion in a .psgi file.
-
-    # Example application base class
-    package My::Project;
-    use PlackX::Framework;
-    PlackX::Framework->generate_sublcasses(':all'); # Generates My::Project::App, among others.
 
     # Example app.psgi
     use My::Project;
