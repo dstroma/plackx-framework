@@ -89,10 +89,12 @@ sub route {
     # After filter (TODO - change name to 'postfilter'?)
     my $after_result = PlackX::Framework::Controller::execute_filters($controller, 'after', $request, $response);
     return finalized_response($after_result) if $after_result and is_valid_response($after_result);
+
+    # Finish
+    return finalized_response($response) if is_valid_response($response);
   }
   
-  return $class->not_found_response unless $response and ref $response;
-  return finalized_response($response);
+  return $class->not_found_response;
 }
 
 #######################################################################
