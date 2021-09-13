@@ -13,9 +13,9 @@ sub to_app {
   };
 }
 
-# Public object method
-# TODO - should this be a method on a request object?
-sub reroute {
+# Public class method
+# Normally should be called as $request->reroute($where)
+sub handle_reroute {
   my $class    = shift;
   my $request  = shift;
   my $where_to = shift;
@@ -59,10 +59,10 @@ sub handle_request {
   $response->status(200);
   $response->content_type('text/html');
 
-  return $class->route($request, $response);
+  return $class->route_request($request, $response);
 }
 
-sub route {
+sub route_request {
   my $class    = shift;
   my $request  = shift;
   my $response = shift;
@@ -101,18 +101,25 @@ sub route {
 # Helpers
 
 sub is_valid_response {
-  shift if @_ > 1; # shift off class or object if present, don't need it
-  my $response = shift;
-
+  my $response = pop;
   return undef unless defined $response and ref $response;      # Bad  - must be defined and be a ref
   return 1 if ref $response eq 'ARRAY' and @$response == 3;     # Good - PSGI raw response arrayref
   return 1 if blessed $response and $response->can('finalize'); # Good - Plack-like response object with finalize() method
   return undef;
 }
 
+#sub is_valid_response_arrayref {
+#  my $response = pop;
+#  return ($response and ref $response eq 'ARRAY' and @$response == 3) ? 1 : undef;
+#}
+#
+#sub is_valid_response_object {
+#  my $response = pop;
+#  return ($response and ref $response and blessed $response and $response->can('finalize')) ? 1 : undef;
+#}
+
 sub finalized_response {
-  shift if @_ > 1; # shift off class or object if present, don't need it
-  my $response = shift;
+  my $response = pop;
   return ref $response eq 'ARRAY' ? $response : $response->finalize;
 }
 

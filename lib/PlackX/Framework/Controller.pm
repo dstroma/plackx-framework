@@ -5,14 +5,16 @@ use warnings;
 use Exporter;
 use base 'Exporter';
 our @EXPORT = our @EXPORT_OK = qw/request filter $request $response/;
+
 our $filters = {};
+our $bases   = {};
 
 sub import {
   my $class = $_[0];
   {
     no strict 'refs';
     #push @{$class.'::EXPORT'}, qw/request filter $request $response/;
-    push @{$class.'::EXPORT'}, qw/request filter/;
+    push @{$class.'::EXPORT'}, qw/request request_base filter/;
   }
   $class->export_to_level(1, @_);
 
@@ -29,9 +31,24 @@ sub request {
   my ($package) = caller;
 
   my $app_namespace = _get_app_namespace($package);
-  my $router = "$app_namespace\::Router"->router;
-  $router->add_route($route, { subref => $coderef, controller => $package } );
+  my $router = ($app_namespace . '::Router')->router;
+
+  # Add route
+  $router->add_route($route, { subref => $coderef, controller => $package, base => $bases->{$package} } );
   return;
+}
+
+sub request_base {
+  my ($package) = caller;
+  my $base      = shift;
+  $base = remove_trailing_slash_from_uri($base);
+  $bases->{$package} = $base;
+}
+
+sub remove_trailing_slash_from_uri {
+  my $uri = shift;
+  $uri = substr($uri, 0, -1) if substr($uri, -1, 1) eq '/';
+  return $uri;
 }
 
 sub filter {

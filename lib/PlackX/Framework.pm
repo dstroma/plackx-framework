@@ -25,7 +25,8 @@ sub import {
   my $load_success = load_framework($caller);
 
   # Special Case - FORCE creation of Controller so that we can import properly
-  $load_success->{Controller} = undef;
+  # I don't remember why this is here
+  # $load_success->{Controller} = undef;
 
   # Check if loaded; if not, automagically generate the classes
   foreach my $i (@auto_create) {

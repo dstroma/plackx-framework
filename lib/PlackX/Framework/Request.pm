@@ -35,7 +35,7 @@ sub app_class {
 sub reroute {
   my $self  = shift;
   my $where = shift;
-  return $self->app_class->reroute($self, $where);
+  return $self->app_class->handle_reroute($self, $where);
 }
 
 sub stash {
