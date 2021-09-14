@@ -2,6 +2,9 @@ package PlackX::Framework::Router;
 use base 'Router::Simple';
 
 our $router;
+
+# What happens to $router when you subclass this?
+
 sub router {
   my $class = shift;
   $router ||= $class->new;
@@ -9,28 +12,31 @@ sub router {
 
 sub add_route {
   my $router  = shift;
-  my $route   = shift;
-  my $params  = shift;
+  my %params  = @_;
+
+  my $route   = delete $params{routespec};
+  my $base    = delete $params{base};
+
   my $path    = $route;
-  my $base    = $params->{base};
+
   if (ref $route eq 'HASH') {
     foreach my $key (keys %$route) {
       $path = $route->{$key};
       if (ref $path eq 'ARRAY') {
         my @paths = @$path;
         foreach $path (@paths) {
-          $router->connect(path_with_base($path, $base), { controller => $params->{controller}, subref => $params->{subref} }, { method => uc $key });
+          $router->connect(path_with_base($path, $base), \%params, { method => uc $key });
         }
       } else {
-        $router->connect(path_with_base($path, $base), { controller => $params->{controller}, subref => $params->{subref} }, { method => uc $key });
+        $router->connect(path_with_base($path, $base), \%params, { method => uc $key });
       }
     }
   } elsif (ref $route eq 'ARRAY') {
     foreach $path (@$route) {
-      $router->connect(path_with_base($path, $base), { controller => $params->{controller}, subref => $params->{subref} });
+      $router->connect(path_with_base($path, $base), \%params);
     }
   } else {
-    $router->connect(path_with_base($path, $base), { controller => $params->{controller}, subref => $params->{subref} });
+    $router->connect(path_with_base($path, $base), \%params);
   }
 }
 

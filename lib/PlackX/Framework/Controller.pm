@@ -13,7 +13,6 @@ sub import {
   my $class = $_[0];
   {
     no strict 'refs';
-    #push @{$class.'::EXPORT'}, qw/request filter $request $response/;
     push @{$class.'::EXPORT'}, qw/request request_base filter/;
   }
   $class->export_to_level(1, @_);
@@ -25,32 +24,6 @@ sub import {
   #warnings->unimport('experimental::signatures');
 }
 
-sub request {
-  my $route     = shift;
-  my $coderef   = shift;
-  my ($package) = caller;
-
-  my $app_namespace = _get_app_namespace($package);
-  my $router = ($app_namespace . '::Router')->router;
-
-  # Add route
-  $router->add_route($route, { subref => $coderef, controller => $package, base => $bases->{$package} } );
-  return;
-}
-
-sub request_base {
-  my ($package) = caller;
-  my $base      = shift;
-  $base = remove_trailing_slash_from_uri($base);
-  $bases->{$package} = $base;
-}
-
-sub remove_trailing_slash_from_uri {
-  my $uri = shift;
-  $uri = substr($uri, 0, -1) if substr($uri, -1, 1) eq '/';
-  return $uri;
-}
-
 sub filter {
   my $when      = shift;
   my $coderef   = shift;
@@ -58,38 +31,63 @@ sub filter {
   my ($package) = caller;
 
   unless ($when eq 'before' or $when eq 'after') {
-    die "usage: filter 'before' => sub {} or filter 'after' => sub {}";
+    die "usage: filter ('before' || 'after') => sub {}";
   }
 
-  push @{_get_filters($package, $when)}, {
-    subref     => $coderef,
+  _add_filter($package, $when, {
+    action     => $coderef,
     controller => $package,
     'when'     => $when,
     params     => \@slurp
-  };
+  });
   return;
 }
 
-sub execute_filters {
-  my $class    = shift;
-  my $when     = shift;
-  my $request  = shift;
-  my $response = shift;
-  my $filters  = _get_filters($class, $when);
-  return unless ref $filters;
-  foreach my $filter (@$filters) {
-    my $response = $filter->{subref}->($request, $response, @{$filter->{params}});
-    return $response if $response and ref $response;
-  }
+sub request {
+  my $routespec = shift;
+  my $coderef   = shift;
+  my ($package) = caller;
+
+  my $app_namespace = _get_app_namespace($package);
+  my $router = ($app_namespace . '::Router')->router;
+
+  $router->add_route(
+     routespec   => $routespec,
+     base        => $bases->{$package},
+     prefilters  => _get_filters($package, 'before'),
+     action      => $coderef,
+     postfilters => _get_filters($package, 'after'),
+  );
   return;
+}
+
+sub request_base {
+  my ($package) = caller;
+  my $base      = shift;
+  $base = _remove_trailing_slash_from_uri($base);
+  $bases->{$package} = $base;
+}
+
+sub _remove_trailing_slash_from_uri {
+  my $uri = shift;
+  $uri = substr($uri, 0, -1) if substr($uri, -1, 1) eq '/';
+  return $uri;
 }
 
 sub _get_filters {
   my $class = shift;
   my $when  = shift;
-  $filters->{$class}{$when} ||= [];
   return $filters->{$class}{$when};
 }
+
+sub _add_filter {
+  my $class = shift;
+  my $when  = shift;
+  my $spec  = shift;
+  $filters->{$class}{$when} ||= [];
+  push @{   $filters->{$class}{$when}   }, $spec;
+}
+  
 
 sub _get_app_namespace {
   $_[0] =~ m/^(.+)\:\:Controller/;
@@ -98,6 +96,7 @@ sub _get_app_namespace {
 }
 
 1;
+
 =pod
 
 Examples:
@@ -122,7 +121,8 @@ request '/index' => sub {
   $template->render_index;
 };
 
-request {get => '/index'} => sub {
+request {get => '/login'} => sub {
+  # show login form
   ...
 };
 

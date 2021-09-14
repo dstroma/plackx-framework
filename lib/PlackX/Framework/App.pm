@@ -66,35 +66,41 @@ sub route_request {
   my $class    = shift;
   my $request  = shift;
   my $response = shift;
-  my $env      = $request->env;
   my $router   = ($class->app_namespace . '::Router')->router;
 
-  if (my $routematch = $router->match($env)) {
-    $request->set_route_parameters($routematch);
-    my $controller = $routematch->{controller};
+  if (my $match = $router->match($request->env)) {
+    $request->set_route_parameters($match);
 
-    # Before filter (TODO - change name to 'prefilter'?)
-    my $before_result = PlackX::Framework::Controller::execute_filters($controller, 'before', $request, $response);
-    return finalized_response($before_result) if $before_result and is_valid_response($before_result);
+    # Execute prefilters
+    my $prefilter_result = execute_filters($match->{prefilters}, $request, $response);
+    return finalized_response($prefilter_result) if $prefilter_result;
 
-    # Main request
-    if ($routematch->{subref}) {
-      $response = $routematch->{subref}->($request, $response);
-    } elsif (my $action = $routematch->{action}) {
-      $response = $controller->$action(%$routematch); #backward-compat (TODO - figure out why I did this)
-    } else {
-      die "Route match found but no action or subref";
-    }
+    # Execute main action
+    $response = $match->{action}->($request, $response);
 
-    # After filter (TODO - change name to 'postfilter'?)
-    my $after_result = PlackX::Framework::Controller::execute_filters($controller, 'after', $request, $response);
-    return finalized_response($after_result) if $after_result and is_valid_response($after_result);
+    # Execute postfilters
+    my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
+    return finalized_response($postfilter_result) if $postfilter_result;
 
     # Finish
-    return finalized_response($response) if is_valid_response($response);
+    return finalized_response($response) if is_valid_response($response);    
   }
-  
+
   return $class->not_found_response;
+}
+
+sub execute_filters {
+  my $filters  = shift;
+  my $request  = shift;
+  my $response = shift;
+  return unless $filters and ref $filters eq 'ARRAY';
+
+  foreach my $filter (@$filters) {
+    my $response = $filter->{action}->($request, $response, @{$filter->{params}});
+    return $response if $response and is_valid_response($response);
+  }
+
+  return;
 }
 
 #######################################################################
