@@ -1,14 +1,12 @@
 package PlackX::Framework::Router;
 use base 'Router::Simple';
 
-our $router;
-
-# What happens to $router when you subclass this?
+our %routers;
 
 sub router {
   my $class = shift;
-  $router ||= $class->new;
-}
+  $router{$class} ||= $class->new;
+} 
 
 sub add_route {
   my $router  = shift;
