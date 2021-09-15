@@ -2,26 +2,17 @@ package PlackX::Framework::Controller;
 
 use strict;
 use warnings;
-use Exporter;
-use base 'Exporter';
-our @EXPORT = our @EXPORT_OK = qw/request filter $request $response/;
 
 our $filters = {};
 our $bases   = {};
 
 sub import {
-  my $class = $_[0];
-  {
-    no strict 'refs';
-    push @{$class.'::EXPORT'}, qw/request request_base filter/;
+  my $class = shift;
+  my $callp = caller(0);
+  no strict 'refs';
+  foreach my $exportsub (qw(request request_base filter)) {
+    *{$callp . '::' . $exportsub} = \&{$exportsub};
   }
-  $class->export_to_level(1, @_);
-
-  # Enable signatures
-  #require feature;
-  #require warnings;
-  #feature->import('signatures');
-  #warnings->unimport('experimental::signatures');
 }
 
 sub filter {
@@ -102,7 +93,7 @@ sub _get_app_namespace {
 Examples:
 
 package My::App::Controller;
-use 'PlackX::Framework::Controller';
+use PlackX::Framework::Controller;
 
 filter 'before' => sub {
   my $request  = shift;

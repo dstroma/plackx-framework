@@ -13,10 +13,8 @@ sub router {
 sub add_route {
   my $router  = shift;
   my %params  = @_;
-
   my $route   = delete $params{routespec};
   my $base    = delete $params{base};
-
   my $path    = $route;
 
   if (ref $route eq 'HASH') {
