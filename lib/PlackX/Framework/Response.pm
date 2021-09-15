@@ -1,5 +1,5 @@
 package PlackX::Framework::Response;
-use base 'Plack::Response';
+use parent 'Plack::Response';
 
 use strict;
 use warnings;

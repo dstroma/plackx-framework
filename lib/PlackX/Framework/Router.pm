@@ -1,5 +1,5 @@
 package PlackX::Framework::Router;
-use base 'Router::Simple';
+use parent 'Router::Simple';
 
 our %routers;
 

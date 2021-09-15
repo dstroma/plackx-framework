@@ -1,6 +1,8 @@
 package PlackX::Framework::Request;
+use parent 'Plack::Request';
 
-use base 'Plack::Request';
+use strict;
+use warnings;
 use PlackX::Framework::URI;
 
 sub address {
