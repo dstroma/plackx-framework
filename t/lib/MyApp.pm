@@ -5,7 +5,6 @@ use experimental 'signatures';
 package MyApp {
 	use PlackX::Framework;
 	use MyApp::Router;
-
 	request '/' => sub {
 		my $html = '<html><head><title>Hello World</title></head><body><h1>Hello World</h1><p>Hello from a PSGI raw arrayref response.</p></body></html>';
 		return [200, [], [$html]];
@@ -42,7 +41,6 @@ package MyApp::Controller::Main {
 	};
 
 	request '/template' => sub ($request, $response) {
-
 		# The following sets up templating manually with Template Toolkit (Template.pm)
 		# Normally this could be automatically loaded via subclassing PlackX::Framework::Template
 		# It has been enclosed into its own scope here to simulate use with auto-loading
@@ -59,7 +57,6 @@ package MyApp::Controller::Main {
 		$response->template->set(para1 => 'Greetings from inside of a template using PlackX::Framework.');
 		return $response->template->render;	
 	};
-
 }
 
 package MyApp::Controller::MoreExamples {
@@ -123,7 +120,6 @@ package MyApp::Controller::MoreExamples {
 		$response->print('And here is the request response.');
 		return $response;
 	};
-
 }
 
 1;

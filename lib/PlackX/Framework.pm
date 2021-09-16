@@ -21,8 +21,8 @@ sub import {
   my $class  = shift;
   my $caller = caller(0);
 
-  # Load the modules
-  my $load_success = load_framework($caller);
+  # Load the application's subclassed versions of PlackX::Framework::*
+  my $load_success = load_subclasses($caller);
 
   # Check if loaded; if not, automagically generate the classes
   foreach my $i (@auto_create) {
@@ -37,20 +37,15 @@ sub generate_subclass {
 
   # Create the package/class - must use string eval
   eval qq{
-    package $new_class;
-    use parent '$base_class';
-    use $base_class;
-    1;
+    package $new_class; use $base_class (); use parent '$base_class'; 1;
   } or die $@;
 
-  # Fool %INC so it can be "use"d.
-  my $filename = $new_class;
-  $filename =~ s#::#/#g;
-  $filename = $filename . '.pm';
-  $INC{$filename} = $filename unless exists $INC{$filename};
+  # Add to %INC so it can be "use"d without looking in the filesystem
+  (my $filename = $new_class . '.pm') =~ s{::}{/}g;
+  $INC{$filename} = '' unless exists $INC{$filename};
 }
 
-sub load_framework {
+sub load_subclasses {
   my $class   = shift;
   my %success = ();
   for my $mod (@auto_load) {
