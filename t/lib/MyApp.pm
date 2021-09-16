@@ -4,15 +4,24 @@ use experimental 'signatures';
 
 package MyApp {
 	use PlackX::Framework;
-}
-
-package MyApp::Controller::Examples {
-	use PlackX::Framework::Controller;
+	use MyApp::Router;
 
 	request '/' => sub {
 		my $html = '<html><head><title>Hello World</title></head><body><h1>Hello World</h1><p>Hello from a PSGI raw arrayref response.</p></body></html>';
 		return [200, [], [$html]];
 	};
+}
+
+package MyApp2 {
+	use PlackX::Framework;
+	use MyApp2::Router;
+	request '/app2' => sub {
+		die "We should not be able to get here, as it's using MyApp2::Router instead of MyApp::Router";
+	}
+}
+
+package MyApp::Controller::Main {
+	use MyApp::Router;
 
 	request '/plackx-response' => sub ($request, $response) {
 		$response->print('<html>');
@@ -54,17 +63,22 @@ package MyApp::Controller::Examples {
 }
 
 package MyApp::Controller::MoreExamples {
-	use PlackX::Framework::Controller;
+	use MyApp::Router;
 	request_base '/more-examples';
 
 	filter 'before' => sub ($request, $response) {
 		$response->print('<html><head><style type="text/css">body { font-family: Verdana, Helvetica; background: #333; color: #eee; }</style></head><body>');
-		return 0;
+		return;
+    };
+
+	filter 'before' => sub ($request, $response) {
+		$response->print('<h1>I am a chained filter</h1>');
+		return;
     };
 
 	filter 'after' => sub ($request, $response) {
 		$response->print('</body></html>');
-		return 0;
+		return;
     };
 
 	request '/request-dump' => sub ($request, $response) {
@@ -103,6 +117,11 @@ package MyApp::Controller::MoreExamples {
 
 	request 'reroute' => sub ($request, $response) {
 		return $request->reroute('/template');
+	};
+
+	request 'extra-filter' => sub ($request, $response) {
+		$response->print('And here is the request response.');
+		return $response;
 	};
 
 }

@@ -8,12 +8,12 @@ use PlackX::Framework::App ();
 use PlackX::Framework::Request ();
 use PlackX::Framework::Response ();
 use PlackX::Framework::Router ();
+use PlackX::Framework::Router::Engine ();
 use PlackX::Framework::Template ();
 use PlackX::Framework::URI ();
-use PlackX::Framework::Controller ();
 
-our @auto_load   = qw(App Request Response Router Template URI Controller);
-our @auto_create = qw(App Request Response Router URI Controller);
+our @auto_load   = qw(App Request Response Router Router::Engine URI Template);
+our @auto_create = qw(App Request Response Router Router::Engine URI);
 
 sub import {
   # using this module will load your application's appropriate modules;
@@ -23,10 +23,6 @@ sub import {
 
   # Load the modules
   my $load_success = load_framework($caller);
-
-  # Special Case - FORCE creation of Controller so that we can import properly
-  # I don't remember why this is here
-  # $load_success->{Controller} = undef;
 
   # Check if loaded; if not, automagically generate the classes
   foreach my $i (@auto_create) {
@@ -38,7 +34,20 @@ sub import {
 
 sub generate_subclass {
   my ($new_class, $base_class) = @_;
-  eval "package $new_class; use parent '$base_class'; use $base_class; 1;" or die $@; 
+
+  # Create the package/class - must use string eval
+  eval qq{
+    package $new_class;
+    use parent '$base_class';
+    use $base_class;
+    1;
+  } or die $@;
+
+  # Fool %INC so it can be "use"d.
+  my $filename = $new_class;
+  $filename =~ s#::#/#g;
+  $filename = $filename . '.pm';
+  $INC{$filename} = $filename unless exists $INC{$filename};
 }
 
 sub load_framework {

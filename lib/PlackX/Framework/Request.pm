@@ -3,7 +3,6 @@ use parent 'Plack::Request';
 
 use strict;
 use warnings;
-use PlackX::Framework::URI;
 
 sub address {
   my $self = shift;

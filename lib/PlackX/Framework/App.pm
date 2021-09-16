@@ -66,7 +66,7 @@ sub route_request {
   my $class    = shift;
   my $request  = shift;
   my $response = shift;
-  my $router   = ($class->app_namespace . '::Router')->router;
+  my $router   = ($class->app_namespace . '::Router::Engine')->router;
 
   if (my $match = $router->match($request->env)) {
     $request->set_route_parameters($match);
