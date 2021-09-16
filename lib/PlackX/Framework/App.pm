@@ -39,7 +39,7 @@ sub handle_request {
   # Get or create request and response objects
   my $env      = $class->env_or_req_to_env($env_or_req);
   my $request  = $class->env_or_req_to_req($env_or_req);
-  my $response = $maybe_resp || "$app_namespace\::Response"->new;
+  my $response = $maybe_resp || ($app_namespace . '::Response')->new;
 
   $request->set_app_class($class);
 
@@ -48,8 +48,7 @@ sub handle_request {
   $request->set_stash($stash);
   $response->set_stash($stash);
 
-  # Try to set up templating
-  # Do it lazily -- only if the MyApp::Template module is loaded
+  # Try to set up templating lazy (app must subclass ::Template)
   try {
     my $template = ($app_namespace . '::Template')->new($response);
     $response->template($template);
@@ -113,16 +112,6 @@ sub is_valid_response {
   return 1 if blessed $response and $response->can('finalize'); # Good - Plack-like response object with finalize() method
   return undef;
 }
-
-#sub is_valid_response_arrayref {
-#  my $response = pop;
-#  return ($response and ref $response eq 'ARRAY' and @$response == 3) ? 1 : undef;
-#}
-#
-#sub is_valid_response_object {
-#  my $response = pop;
-#  return ($response and ref $response and blessed $response and $response->can('finalize')) ? 1 : undef;
-#}
 
 sub finalized_response {
   my $response = pop;

@@ -11,7 +11,7 @@ sub import {
   my $router_class     = shift;
   my $controller_class = caller(0);
 
-  # Remember which controller is using which router object
+  # Remember which controller is using which router engine object
   $routers->{$controller_class} = $router_class->engine;
 
   # Export

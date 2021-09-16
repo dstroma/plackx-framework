@@ -16,7 +16,7 @@ our @auto_load   = qw(App Request Response Router Router::Engine URI Template);
 our @auto_create = qw(App Request Response Router Router::Engine URI);
 
 sub import {
-  # using this module will load your application's appropriate modules;
+  # "use"ing this module will load the respective subclasses of your application
   # if they do not exist they will be automatically generated
   my $class  = shift;
   my $caller = caller(0);
@@ -61,7 +61,6 @@ sub load_framework {
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
@@ -73,17 +72,15 @@ PlackX::Framework - A thin framework for Plack-based web apps.
 The shortest PlackX::Framework application could be all in one .psgi file:
 
     # app.psgi
-    package MyProject;
-    use PlackX::Framework;
-    PlackX::Framework->generate_sublcasses(qw/:all/);
-
-    package MyProject::Controller::HelloWorld;
-    use MyProject::Controller;
-    request '/' => sub {
-         # hello
-    };
-
-    package main;
+    package MyProject {
+      use PlackX::Framework; 
+      use MyProject::Router; 
+      request '/' => sub {
+         my ($request, $response) = @_;
+         $response->body('<html><body>Hello World!</body></html>');
+         return $response;
+      };
+    }
     MyProject::App->to_app();
 
 However, normally your application would be laid out with separate modules
@@ -98,14 +95,13 @@ PlackX::Framework::App
 PlackX::Framework::Request;
 PlackX::Framework::Response;
 PlackX::Framework::Router;
+PlackX::Framework::Router::Engine;
 PlackX::Framework::Template;
 PlackX::Framework::URI;
-PlackX::Framework::Controller;
 
-The base PlackX::Framework module automatically finds and loads all of
-the required modules. It will first attempt to find any subclasses in
-your namespace and load them. If a subclass of one of the above modules
-does not exist, it will automatically create an empty sublass for you.
+The statement "use PlackX::Framework" will automatically find and load all of
+the required modules. Then it will look for subclasses of the modules listed 
+above and load them, or create empty subclasses for any that do not exist.
 
 The PlackX::Framework::App module supplies the method to_app which 
 returns the necessary coderef for inclusion in a .psgi file.
@@ -122,11 +118,11 @@ The PlackX::Framework::URI module is a subclass of Rose::URI which is offered
 for various URI utility functions. (The entire Rose suite is not required to
 use this module.)
 
-The PlackX::Framework::Router is a subclass of Router::Simple with an extra
-convenience method called add_route. Normally, you would not have to use 
-this module directly. It is used by PlackX::Framework::Controller internally.
+The PlackX::Framework::Router::Engine is a subclass of Router::Simple with some
+extra convenience methods. Normally, you would not have to use this module
+directly. It is used by PlackX::Framework::Router internally.
 
-The PlackX::Framework::Template module is a wrapper around (not a baseclass of)
+The PlackX::Framework::Template module is a wrapper around (not a subclass of)
 Template Toolkit offering several convenience methods. If you desire to use
 a different templating system from TT, you may override as many methods as
 necessary in your subclass. A new instance of this class is generated for
@@ -136,19 +132,20 @@ each request by the app() method of PlackX::Framework::App.
 =head2 Routes and Requests
 
 Although PlackX::Framework uses Router::Simple behind the scenes, routing is 
-performed in an inline DSL-style. Your controller must use PlackX::Controller 
-or preferably a subclass thereof. This exports the request function as well
-as the filter function. 
+performed in an inline DSL-style. Your controller module must "use" the
+associated "::Router" subclass from your project (to avoid collisions between
+different apps in the same Perl interpreter). This will export the 'request',
+'request_base', and 'filter' functions.
 
-    package My::App::Controller;
-    use PlackX::Framework::Controller;
-    request '/hello-world' => sub {
-        my $response = [200, [], ['Hello World']];
-        return $response;
-    };
+    package My::App::Controller {
+      use My::App::Router;
+      request '/hello-world' => sub {
+        return [200, [], ['Hello World']];
+      };
+    }
 
-See PlackX::Framework::Controller for additional documentation on the request
-function.
+See PlackX::Framework::Router for additional documentation on the DSL-style
+request routing.
 
 
 =head2 Filters
@@ -169,9 +166,10 @@ controller. To do this, use the exported filter function.
     };
 
 A before filter should return either a false value, or a reference that is
-a response object or PSGI response arrayref. The former will cause request
-processing to continue as normal, while the latter will abort processing
-and return the response.
+a response object or PSGI response arrayref. A false value will cause request
+processing to proceed as normal, while returning a response will cause that
+response to be rendered immediately without moving on to any additional filters
+or the main request action.
 
 =head2 EXPORT
 
