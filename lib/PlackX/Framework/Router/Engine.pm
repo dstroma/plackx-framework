@@ -1,5 +1,9 @@
 package PlackX::Framework::Router::Engine;
-use parent 'Router::Simple';
+use parent 'PlackX::Framework::Router::Engine::Boom';
+
+1;
+
+=pod
 
 our %routers;
 
