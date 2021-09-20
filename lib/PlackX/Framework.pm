@@ -30,6 +30,16 @@ sub import {
       generate_subclass("$caller::$i" => "PlackX::Framework::$i");
     }
   }
+
+  # Export 'app' method
+  {
+    no strict 'refs';
+    *{$caller . '::app'} = sub {
+      my $class = shift;
+      my $app_class = $class . '::App';
+      $app_class->to_app;
+    }
+  }
 }
 
 sub generate_subclass {
