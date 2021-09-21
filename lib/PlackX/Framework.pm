@@ -16,8 +16,7 @@ our @auto_load   = qw(App Request Response Router Router::Engine URI Template);
 our @auto_create = qw(App Request Response Router Router::Engine URI);
 
 sub import {
-  # "use"ing this module will load the respective subclasses of your application
-  # if they do not exist they will be automatically generated
+  # "use"ing this module will load or create subclasses in your namespace
   my $class  = shift;
   my $caller = caller(0);
 
@@ -26,19 +25,19 @@ sub import {
 
   # Check if loaded; if not, automagically generate the classes
   foreach my $i (@auto_create) {
-    unless ($load_success->{$i}) {
-      generate_subclass("$caller::$i" => "PlackX::Framework::$i");
-    }
+    generate_subclass("$caller::$i" => "PlackX::Framework::$i") unless $load_success->{$i};
   }
 
-  # Export 'app' method
-  {
-    no strict 'refs';
-    *{$caller . '::app'} = sub {
-      my $class = shift;
-      my $app_class = $class . '::App';
-      $app_class->to_app;
-    }
+  export_app_sub($caller);
+}
+
+sub export_app_sub {
+  my $caller = shift;
+  no strict 'refs';
+  *{$caller . '::app'} = sub {
+    my $class = shift;
+    my $app_class = $class . '::App';
+    $app_class->to_app(@_);
   }
 }
 
@@ -52,7 +51,7 @@ sub generate_subclass {
 
   # Add to %INC so it can be "use"d without looking in the filesystem
   (my $filename = $new_class . '.pm') =~ s{::}{/}g;
-  $INC{$filename} = '' unless exists $INC{$filename};
+  $INC{$filename} = 1 unless exists $INC{$filename};
 }
 
 sub load_subclasses {
@@ -86,7 +85,7 @@ The shortest PlackX::Framework application could be all in one .psgi file:
          return $response;
       };
     }
-    MyProject::App->to_app();
+    MyProject->app;
 
 However, normally your application would be laid out with separate modules
 in separate files.

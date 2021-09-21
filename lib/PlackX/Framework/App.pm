@@ -7,9 +7,10 @@ use Try::Tiny;
 
 # Public class method
 sub to_app {
-  my $class = shift;
-  return sub { 
-    $class->handle_request(shift)
+  my $class   = shift;
+  my %options = @_;
+  return sub {
+    $class->handle_request(@_, \%options)
   };
 }
 
@@ -34,6 +35,7 @@ sub handle_request {
   my $class         = shift;
   my $env_or_req    = shift;
   my $maybe_resp    = shift;
+  my $app_options   = pop;
   my $app_namespace = $class->app_namespace;
 
   # Get or create request and response objects
