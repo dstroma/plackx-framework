@@ -35,9 +35,9 @@ sub export_app_sub {
   my $caller = shift;
   no strict 'refs';
   *{$caller . '::app'} = sub {
-    my $class = shift;
+    my $class     = shift;
     my $app_class = $class . '::App';
-    $app_class->to_app(@_);
+    $app_class->to_app;
   }
 }
 
