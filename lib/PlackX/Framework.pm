@@ -73,7 +73,7 @@ PlackX::Framework - A thin framework for Plack-based web apps.
 
 =head1 SYNOPSIS
 
-The shortest PlackX::Framework application could be all in one .psgi file:
+A simple PlackX::Framework application could be all in one .psgi file:
 
     # app.psgi
     package MyProject {
@@ -81,7 +81,7 @@ The shortest PlackX::Framework application could be all in one .psgi file:
       use MyProject::Router; 
       request '/' => sub {
          my ($request, $response) = @_;
-         $response->body('<html><body>Hello World!</body></html>');
+         $response->body('Hello, ', $request->param('name'));
          return $response;
       };
     }
@@ -105,14 +105,19 @@ PlackX::Framework::URI;
 
 The statement "use PlackX::Framework" will automatically find and load all of
 the required modules. Then it will look for subclasses of the modules listed 
-above and load them, or create empty subclasses for any that do not exist.
+above that exist in your namespace and load them, or create empty subclasses
+for any that do not exist. The follwing example
 
-The PlackX::Framework::App module supplies the method to_app which 
-returns the necessary coderef for inclusion in a .psgi file.
+    package MyProject {
+        use PlackX::Framework;
+        # ...app logic here...
+    }
 
-    # Example app.psgi
-    use My::Project;
-    My::Project::App->to_app();
+will attempt to load MyProject::App, MyProject::Request, MyProject::Response
+and so on, or create them if they do not exist (with the exception that the
+PlackX::Framework::Template module and its subclass inside your namespace is
+lazy-loaded only if necessary and is not automatically created--if you intend
+to use it you must subclass it yourself).
 
 The PlackX::Framework::Request and PlackX::Framework::Response modules are
 subclasses of Plack::Request and Plack::Response sprinkled with additional
@@ -122,7 +127,7 @@ The PlackX::Framework::URI module is a subclass of Rose::URI which is offered
 for various URI utility functions. (The entire Rose suite is not required to
 use this module.)
 
-The PlackX::Framework::Router::Engine is a subclass of Router::Simple with some
+The PlackX::Framework::Router::Engine is a subclass of Router::Boom with some
 extra convenience methods. Normally, you would not have to use this module
 directly. It is used by PlackX::Framework::Router internally.
 
@@ -133,51 +138,28 @@ necessary in your subclass. A new instance of this class is generated for
 each request by the app() method of PlackX::Framework::App.
 
 
-=head2 Routes and Requests
+=head2 Routes, Requests, and Request Filtering
 
-Although PlackX::Framework uses Router::Simple behind the scenes, routing is 
-performed in an inline DSL-style. Your controller module must "use" the
-associated "::Router" subclass from your project (to avoid collisions between
-different apps in the same Perl interpreter). This will export the 'request',
-'request_base', and 'filter' functions.
-
-    package My::App::Controller {
-      use My::App::Router;
-      request '/hello-world' => sub {
-        return [200, [], ['Hello World']];
-      };
-    }
-
-See PlackX::Framework::Router for additional documentation on the DSL-style
-request routing.
+See PlackX::Framework::Router for documentation on request routing and
+filtering.
 
 
-=head2 Filters
+=head2 Templating
 
-You may decide you want to apply a filter before or after all requests in a 
-controller. To do this, use the exported filter function.
+See PlackX::Framework::Template.
 
-    package My::App::Controller;
-    use PlackX::Framework::Controller;
-    filter 'before' => sub {
-        ...
-    };
-    request '/hello-world' => sub {
-        ...
-    };
-    filter 'after' => sub {
-        ...
-    };
 
-A before filter should return either a false value, or a reference that is
-a response object or PSGI response arrayref. A false value will cause request
-processing to proceed as normal, while returning a response will cause that
-response to be rendered immediately without moving on to any additional filters
-or the main request action.
+=head2 Databases and Object-Relational Mapping
+
+This framework is databse/ORM agnostic, you are free to choose your own or use
+plain DBI/SQL.
+
 
 =head2 EXPORT
 
-None.
+This module will export the method app, which returns the code reference of
+your app in accordance to the PSGI specification. (This is actually a shortcut
+to ::App->to_app.)
 
 
 =head1 Dependencies
@@ -185,11 +167,12 @@ None.
 Plack
 TAP::Harness::Env (By way of Plack)
 Rose::URI
-Router::Simple
+Router::Boom
 
 
 =head1 SEE ALSO
 
+PSGI
 Plack
 Plack::Request
 Plack::Response
@@ -202,7 +185,7 @@ Dondi Michael Stroma, E<lt>dstroma@localE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2016 by Dondi Stroma
+Copyright (C) 2016, 2021 by Dondi Stroma
 
 
 =cut
