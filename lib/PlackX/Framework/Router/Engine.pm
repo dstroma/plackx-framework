@@ -1,16 +1,32 @@
 package PlackX::Framework::Router::Engine;
-use parent 'PlackX::Framework::Router::Engine::Boom';
+use parent 'Router::Boom';
 
-1;
-
-=pod
+use warnings;
+use strict;
 
 our %routers;
 
 sub router {
   my $class = shift;
-  $router{$class} ||= $class->new;
+  $routers{$class} ||= $class->new;
 } 
+
+sub match {
+  my $self     = shift;
+  my $env      = shift;
+  my $req_path = $env->{'PATH_INFO'};
+  my $req_meth = $env->{'REQUEST_METHOD'};
+  my @match    = $self->SUPER::match('/[' . $req_meth . ']' . $req_path);
+
+  if (@match and @match == 2) {
+    my ($destin, $captures) = @match;
+    my %matchinfo = (%$destin, %$captures);
+    delete $matchinfo{REQUEST_METHOD};
+    return \%matchinfo;
+  } else {
+    return undef;
+  }
+}
 
 sub add_route {
   my $router  = shift;
@@ -25,18 +41,18 @@ sub add_route {
       if (ref $path eq 'ARRAY') {
         my @paths = @$path;
         foreach $path (@paths) {
-          $router->connect(path_with_base($path, $base), \%params, { method => uc $key });
+          $router->add(path_with_base_and_method($path, $base, uc $key), \%params);
         }
       } else {
-        $router->connect(path_with_base($path, $base), \%params, { method => uc $key });
+        $router->add(path_with_base_and_method($path, $base, uc $key), \%params);
       }
     }
   } elsif (ref $route eq 'ARRAY') {
     foreach $path (@$route) {
-      $router->connect(path_with_base($path, $base), \%params);
+      $router->add(path_with_base_and_method($path, $base), \%params);
     }
   } else {
-    $router->connect(path_with_base($path, $base), \%params);
+    $router->add(path_with_base_and_method($path, $base), \%params);
   }
 }
 
@@ -47,6 +63,23 @@ sub path_with_base {
 
   $path = '/' . $path if substr($path, 0, 1) ne '/';
   return $base . $path;
+}
+
+sub path_with_method {
+  my $path   = shift;
+  my $method = shift;
+  $method = $method ? '/[' . uc $method . ']' : '/[:REQUEST_METHOD]';
+  $path   = $method . $path;
+  return $path;
+}
+
+sub path_with_base_and_method {
+  my $path   = shift;
+  my $base   = shift;
+  my $method = shift;
+  $path = path_with_base($path, $base);
+  $path = path_with_method($path, $method);
+  return $path;
 }
 
 1;
