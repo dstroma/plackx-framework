@@ -123,9 +123,8 @@ The PlackX::Framework::Request and PlackX::Framework::Response modules are
 subclasses of Plack::Request and Plack::Response sprinkled with additional
 features. See the documentation of those modules for details.
 
-The PlackX::Framework::URI module is a subclass of Rose::URI which is offered
-for various URI utility functions. (The entire Rose suite is not required to
-use this module.)
+The PlackX::Framework::URI module is a subclass URI, enables the additional
+methods from URI::QueryParam, and adds some shortcut methods.
 
 The PlackX::Framework::Router::Engine is a subclass of Router::Boom with some
 extra convenience methods. Normally, you would not have to use this module
