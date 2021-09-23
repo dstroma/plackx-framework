@@ -12,7 +12,13 @@ sub address {
 sub is_post { return uc shift->method eq 'POST' }
 sub is_get  { return uc shift->method eq 'GET'  }
 sub is_ajax { return uc shift->header('X-Requested-With') eq uc 'XMLHttpRequest' }
-sub uri_obj { return PlackX::Framework::URI->new(shift->request_uri) };
+
+sub uri {
+  my $self = shift;
+  my $uri  = $self->SUPER::uri;
+  bless $uri, $self->app_class . '::URI';
+  return $uri;
+}
 
 sub is_mobile {
   my $self = shift;
