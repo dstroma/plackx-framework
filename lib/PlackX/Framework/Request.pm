@@ -4,15 +4,29 @@ use parent 'Plack::Request';
 use strict;
 use warnings;
 
-sub address {
-  my $self = shift;
-  return $self->header('X-Real-IP') || $self->SUPER::address(@_);
-}
-
 sub is_post { return uc shift->method eq 'POST' }
 sub is_get  { return uc shift->method eq 'GET'  }
 sub is_ajax { return uc shift->header('X-Requested-With') eq uc 'XMLHttpRequest' }
-sub uri_obj { return PlackX::Framework::URI->new(shift->request_uri) };
+
+sub uri {
+  my $self = shift;
+
+  my $uri_class = $self->app_class . '::URI';
+  unless (eval "require $uri_class; 1;") {
+    $uri_class = 'PlackX::Framework::URI';
+  }
+
+  # Copied from uri method of Plack::Request
+  my $base = $self->_uri_base;
+  my $path_escape_class = q{^/;:@&=A-Za-z0-9\$_.+!*'(),-};
+  my $path = URI::Escape::uri_escape($self->env->{PATH_INFO} || '', $path_escape_class);
+  $path .= '?' . $self->env->{QUERY_STRING}
+      if defined $self->env->{QUERY_STRING} && $self->env->{QUERY_STRING} ne '';
+  $base =~ s!/$!! if $path =~ m!^/!;
+  # End copy
+ 
+  return $uri_class->new($base . $path)->normalize;
+}
 
 sub is_mobile {
   my $self = shift;

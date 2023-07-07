@@ -9,11 +9,18 @@ use PlackX::Framework::Request ();
 use PlackX::Framework::Response ();
 use PlackX::Framework::Router ();
 use PlackX::Framework::Router::Engine ();
-use PlackX::Framework::Template ();
-use PlackX::Framework::URI ();
+#use PlackX::Framework::Template ();
+#use PlackX::Framework::URI ();
 
-our @auto_load   = qw(App Request Response Router Router::Engine URI Template);
-our @auto_create = qw(App Request Response Router Router::Engine URI);
+our %modules = (
+  App            => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  Request        => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  Response       => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  Router         => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  Router::Engine => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  Template       => { auto_load_subclass => 1 },
+  URI            => { auto_load_subclass => 1 },
+);
 
 sub import {
   # "use"ing this module will load or create subclasses in your namespace
@@ -21,7 +28,10 @@ sub import {
   my $caller = caller(0);
 
   # Load the application's subclassed versions of PlackX::Framework::*
-  my $load_success = load_subclasses($caller);
+  foreach my $module (keys %modules) {
+    if ($modules{$module}->{auto_load_subclass}) {
+    my $success = load_subclass($class, $module);
+
 
   # Check if loaded; if not, automagically generate the classes
   foreach my $i (@auto_create) {
@@ -39,6 +49,13 @@ sub export_app_sub {
     my $app_class = $class . '::App';
     $app_class->to_app;
   }
+}
+
+sub load_subclass {
+  my $class   = shift;
+  my $module  = shift;
+  my $success = eval "require $class::$module; 1;";
+  return $success;
 }
 
 sub generate_subclass {
@@ -123,9 +140,8 @@ The PlackX::Framework::Request and PlackX::Framework::Response modules are
 subclasses of Plack::Request and Plack::Response sprinkled with additional
 features. See the documentation of those modules for details.
 
-The PlackX::Framework::URI module is a subclass of Rose::URI which is offered
-for various URI utility functions. (The entire Rose suite is not required to
-use this module.)
+The PlackX::Framework::URI module is a subclass URI, enables the additional
+methods from URI::QueryParam, and adds some shortcut methods.
 
 The PlackX::Framework::Router::Engine is a subclass of Router::Boom with some
 extra convenience methods. Normally, you would not have to use this module
