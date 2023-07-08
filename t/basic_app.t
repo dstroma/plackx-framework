@@ -36,8 +36,8 @@ sub test2 {
 }
 
 sub test3 {
-	# See if auto_create worked
-	foreach my $auto_class (@PlackX::Framework::auto_create) {
+	# See if subclasses are automatically created
+	foreach my $auto_class (qw(App Request Response Router Router::Engine)) {
 		my $dummy_obj = bless [], $test_app_namespace . '::' . $auto_class;
 		my $parent    = 'PlackX::Framework::' . $auto_class;
 		ok($dummy_obj->isa($parent) => "Assert auto-created class $test_app_namespace is subclass of $parent");
@@ -48,15 +48,17 @@ sub test4 {
 	# Add a handler for requests to /
 	ok(
 		eval qq{
-			package $test_app_namespace\::Controller::Root {
-				use PlackX::Framework::Controller;
+			package $test_app_namespace {
+				use PlackX::Framework;
+				use $test_app_namespace\::Router;
 				request '/' => sub {
 					return [200, [], ["<html>test from process $$</html>"]];
 				};
+				request '/fuck-you/hard' => sub { };
 			}
 			1;
 		},
-		"Create a controller with a route to /"
+		"Create a controller with a route to /" . ($@ ? "\n$@" : ""),
 	);
 }
 

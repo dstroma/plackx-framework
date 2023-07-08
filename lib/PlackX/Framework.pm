@@ -9,17 +9,19 @@ use PlackX::Framework::Request ();
 use PlackX::Framework::Response ();
 use PlackX::Framework::Router ();
 use PlackX::Framework::Router::Engine ();
+
+# Not everyone will need these modules, do not load by default
 #use PlackX::Framework::Template ();
-#use PlackX::Framework::URI ();
+#use PlackX::Framework::URI (); 
 
 our %modules = (
-  App            => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Request        => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Response       => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Router         => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Router::Engine => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Template       => { auto_load_subclass => 1 },
-  URI            => { auto_load_subclass => 1 },
+  App              => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  Request          => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  Response         => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  Router           => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  'Router::Engine' => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  Template         => { auto_load_subclass => 1 },
+  URI              => { auto_load_subclass => 1 },
 );
 
 sub import {
@@ -29,13 +31,16 @@ sub import {
 
   # Load the application's subclassed versions of PlackX::Framework::*
   foreach my $module (keys %modules) {
+    my %load_success = ();
+
     if ($modules{$module}->{auto_load_subclass}) {
-    my $success = load_subclass($class, $module);
+      $load_success{$module} = load_subclass($caller, $module);
+    }
 
-
-  # Check if loaded; if not, automagically generate the classes
-  foreach my $i (@auto_create) {
-    generate_subclass("$caller::$i" => "PlackX::Framework::$i") unless $load_success->{$i};
+    # Automatically create any that don't exist, unless auto_create_subclass is false
+    if ($modules{$module}->{auto_create_subclass}) {
+      generate_subclass($caller . '::' . $module => "PlackX::Framework::$module") unless $load_success{$module};
+    }
   }
 
   export_app_sub($caller);
@@ -54,7 +59,7 @@ sub export_app_sub {
 sub load_subclass {
   my $class   = shift;
   my $module  = shift;
-  my $success = eval "require $class::$module; 1;";
+  my $success = eval "require $class\::$module; 1;";
   return $success;
 }
 
@@ -71,14 +76,14 @@ sub generate_subclass {
   $INC{$filename} = 1 unless exists $INC{$filename};
 }
 
-sub load_subclasses {
-  my $class   = shift;
-  my %success = ();
-  for my $mod (@auto_load) {
-    $success{$mod} = eval "require $class::$mod;";
-  }
-  return \%success;
-}
+#sub load_subclasses {
+#  my $class   = shift;
+#  my %success = ();
+#  for my $mod (@auto_load) {
+#    $success{$mod} = eval "require $class::$mod;";
+#  }
+#  return \%success;
+#}
 
 1;
 __END__
@@ -104,8 +109,9 @@ A simple PlackX::Framework application could be all in one .psgi file:
     }
     MyProject->app;
 
-However, normally your application would be laid out with separate modules
-in separate files.
+However, a larger application would be typically laid out with separate modules
+in separate files, for example in MyProject::Controller::* modules. Each should
+use MyProject::Router if the DSL-style routing is desired.
 
 
 =head1 DESCRIPTION

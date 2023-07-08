@@ -11,6 +11,10 @@ sub import {
   my $router_class     = shift;
   my $controller_class = caller(0);
 
+  # Trap errors
+  die "You must import from your app's sublcass of PlackX::Framework::Router, not directly"
+    if $router_class eq __PACKAGE__;
+
   # Remember which controller is using which router engine object
   $routers->{$controller_class} = $router_class->engine;
 
@@ -53,6 +57,7 @@ sub request {
      action      => $coderef,
      postfilters => _get_filters($package, 'after'),
   );
+
   return;
 }
 
