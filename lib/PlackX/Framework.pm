@@ -76,15 +76,6 @@ sub generate_subclass {
   $INC{$filename} = 1 unless exists $INC{$filename};
 }
 
-#sub load_subclasses {
-#  my $class   = shift;
-#  my %success = ();
-#  for my $mod (@auto_load) {
-#    $success{$mod} = eval "require $class::$mod;";
-#  }
-#  return \%success;
-#}
-
 1;
 __END__
 
