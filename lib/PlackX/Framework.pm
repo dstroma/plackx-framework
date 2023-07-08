@@ -26,20 +26,19 @@ our %modules = (
 
 sub import {
   # "use"ing this module will load or create subclasses in your namespace
-  my $class  = shift;
   my $caller = caller(0);
 
   # Load the application's subclassed versions of PlackX::Framework::*
   foreach my $module (keys %modules) {
-    my %load_success = ();
+    my %loaded = ();
 
     if ($modules{$module}->{auto_load_subclass}) {
-      $load_success{$module} = load_subclass($caller, $module);
+      $loaded{$module} = load_subclass($caller, $module);
     }
 
     # Automatically create any that don't exist, unless auto_create_subclass is false
     if ($modules{$module}->{auto_create_subclass}) {
-      generate_subclass($caller . '::' . $module => "PlackX::Framework::$module") unless $load_success{$module};
+      generate_subclass($caller . '::' . $module => "PlackX::Framework::$module") unless $loaded{$module};
     }
   }
 
