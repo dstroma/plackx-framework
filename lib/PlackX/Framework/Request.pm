@@ -56,7 +56,7 @@ sub reroute {
 
 sub stash {
   my $self = shift;
-  die "$self - stash not set up" unless $self->{stash} and ref $self->{stash};
+  return undef unless $self->{stash} and ref $self->{stash};
   return $self->{stash};
 }
 

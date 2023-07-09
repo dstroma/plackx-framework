@@ -44,7 +44,7 @@ sub handle_request {
   $request->set_app_class($class);
 
   # Set up stash
-  my $stash = {};
+  my $stash = ($request->stash or $response->stash or {});
   $request->set_stash($stash);
   $response->set_stash($stash);
 
