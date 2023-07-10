@@ -14,18 +14,6 @@ sub to_app {
 }
 
 # Public class method
-# Normally should be called as $request->reroute($where)
-sub handle_reroute {
-  my $class    = shift;
-  my $request  = shift;
-  my $where_to = shift;
-
-  # TODO - See if there is a less hacky way to do this, and check compatibility with different servers/environments
-  $request->{'env'}{'PATH_INFO'} = $where_to;
-  return $class->handle_request($request); # TODO maybe this should just be ->route or maybe we need both a reroute method and a rehandle method
-}
-
-# Public class method
 sub not_found_response {
   return [404, [], ['Not Found']];
 }
