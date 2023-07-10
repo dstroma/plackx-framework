@@ -4,6 +4,9 @@ use parent 'Plack::Request';
 use strict;
 use warnings;
 
+sub is_request  { 1 }
+sub is_response { 0 }
+
 sub is_post { return uc shift->method eq 'POST' }
 sub is_get  { return uc shift->method eq 'GET'  }
 sub is_ajax { return uc shift->header('X-Requested-With') eq uc 'XMLHttpRequest' }
@@ -51,7 +54,8 @@ sub app_class {
 sub reroute {
   my $self  = shift;
   my $where = shift;
-  return $self->app_class->handle_reroute($self, $where);
+  $self->{'env'}{'PATH_INFO'} = $where;
+  return $self;
 }
 
 sub stash {

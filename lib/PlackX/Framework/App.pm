@@ -50,6 +50,7 @@ sub handle_request {
 
   # Try to set up templating lazy (app must subclass ::Template)
   try {
+    # TODO: See if $app_namespace::Template is loaded before trying to call new on it
     my $template = ($app_namespace . '::Template')->new($response);
     $response->template($template);
   };
@@ -77,12 +78,17 @@ sub route_request {
     # Execute main action
     $response = $match->{action}->($request, $response);
 
+    # Check if the "response" is actually another "request" (despite the variable name)
+    if ($response->is_request) {
+      return $class->handle_request($response);
+    }
+
     # Execute postfilters
     my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
     return finalized_response($postfilter_result) if $postfilter_result;
 
     # Finish
-    return finalized_response($response) if is_valid_response($response);    
+    return finalized_response($response) if is_valid_response($response);
   }
 
   return $class->not_found_response;
