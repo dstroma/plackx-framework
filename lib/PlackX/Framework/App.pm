@@ -80,7 +80,8 @@ sub route_request {
 
     # Check if the "response" is actually another "request" (despite the variable name)
     if ($response->is_request) {
-      return $class->handle_request($response);
+      my $request = $response;
+      return $class->handle_request($request);
     }
 
     # Execute postfilters
