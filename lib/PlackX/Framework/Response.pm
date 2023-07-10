@@ -4,6 +4,9 @@ use parent 'Plack::Response';
 use strict;
 use warnings;
 
+sub is_request  { 0 }
+sub is_response { 1 }
+
 sub new {
   my $class = shift;
   my $self  = $class->SUPER::new(@_);

@@ -177,8 +177,7 @@ to ::App->to_app.)
 =head1 Dependencies
 
 Plack
-TAP::Harness::Env (By way of Plack)
-Rose::URI
+URI::Fast
 Router::Boom
 
 
