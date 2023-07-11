@@ -18,6 +18,10 @@ sub not_found_response {
   return [404, [], ['Not Found']];
 }
 
+sub error_response {
+  return [500, [], ['Internal Server Error']];
+}
+
 sub handle_request {
   my $class         = shift;
   my $env_or_req    = shift;
@@ -64,13 +68,12 @@ sub route_request {
     return finalized_response($prefilter_result) if $prefilter_result;
 
     # Execute main action
-    $response = $match->{action}->($request, $response);
+    my $result = $match->{action}->($request, $response);
 
     # Check if the "response" is actually another "request" (despite the variable name)
-    if ($response->is_request) {
-      my $request = $response;
-      return $class->handle_request($request);
-    }
+    return $class->handle_request($result) if $result->is_request;
+    return $class->error_response unless $result->is_response;
+    $response = $result;
 
     # Execute postfilters
     my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
