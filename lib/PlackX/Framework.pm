@@ -1,8 +1,10 @@
 package PlackX::Framework;
 
-use 5.010000;
 use strict;
 use warnings;
+use 5.010000;
+
+use Module::Loaded ();
 
 use PlackX::Framework::App ();
 use PlackX::Framework::Request ();
@@ -67,12 +69,12 @@ sub generate_subclass {
 
   # Create the package/class - must use string eval
   eval qq{
-    package $new_class; use $base_class (); use parent '$base_class'; 1;
+    package $new_class;
+    use $base_class ();
+    use parent '$base_class';
+    Module::Loaded::mark_as_loaded($new_class);
+    1;
   } or die $@;
-
-  # Add to %INC so it can be "use"d without looking in the filesystem
-  (my $filename = $new_class . '.pm') =~ s{::}{/}g;
-  $INC{$filename} = 1 unless exists $INC{$filename};
 }
 
 1;

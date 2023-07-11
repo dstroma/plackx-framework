@@ -2,8 +2,10 @@ package PlackX::Framework::App;
 
 use strict;
 use warnings;
+
 use Scalar::Util qw(blessed);
 use Try::Tiny;
+use Module::Loaded ();
 
 # Public class method
 sub to_app {
@@ -41,11 +43,10 @@ sub handle_request {
   $response->set_stash($stash);
 
   # Try to set up templating lazy (app must subclass ::Template)
-  try {
-    # TODO: See if $app_namespace::Template is loaded before trying to call new on it
+  if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
     my $template = ($app_namespace . '::Template')->new($response);
     $response->template($template);
-  };
+  }
 
   # Set response defaults
   $response->status(200);
