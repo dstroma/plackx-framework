@@ -2,6 +2,9 @@ package PlackX::Framework::Template;
 
 use warnings;
 use strict;
+use Try::Tiny;
+
+my %template_engine_objects = ();
 
 1;
 
@@ -15,6 +18,36 @@ PlackX::Framework::Template->new($response);
 
 =cut
 
+sub import {
+  my $class   = shift;
+  my $options = shift if ref $_[0];
+
+  # Trap errors
+  die "You must import from your app's sublcass of PlackX::Framework::Template, not directly"
+    if $class eq __PACKAGE__;
+
+  # Do nothing if get_template_system_object returns something
+  return if $class->get_template_engine;
+
+  # By default, setup Template Toolkit
+  my $engine;
+  my %engine_options = %$options;
+  unless (exists $engine_options{'INCLUDE_PATH'}) {
+    $engine_options{'INCLUDE_PATH'} = 'template';
+  }
+
+  try {
+    require Template;
+    $engine = Template->new(\%engine_options);
+    $class->template_engine($engine);
+    warn "Template toolkit loaded successfully";
+  } catch {
+    warn "Unable to load Template Toolkit: $_[0]";
+  };
+
+  return;
+}
+
 sub new {
   my $class     = shift;
   my $response  = shift;
@@ -24,11 +57,11 @@ sub new {
   die 'Usage: ->new($response_object)' unless $response and ref $response;
 
   unless ($templater) {
-    $templater = $class->get_template_system_object();
-    die 'Not a valid template system object' unless $templater and ref $templater;
+    $templater = $class->get_template_engine();
+    die 'Not a valid template engine object' unless $templater and ref $templater;
   }
 
-  $self->{template_system_object} = $templater;
+  $self->{template_engine_object} = $templater;
   $self->{response_object} = $response;
   $self->{params} = {};
   $self->{template} = undef;
@@ -36,10 +69,20 @@ sub new {
   return $self;
 }
 
-sub get_template_system_object {
-  die 'Method get_template_system_object() must be implemented by a subclass.';
+sub get_template_engine {
+  return $_[0]->template_engine;
 }
-  
+
+sub template_engine {
+  my $self  = shift;
+  my $class = ref $self ? ref $self : $self;
+  if (@_) {
+    my $new_value = shift;
+    $template_engine_objects{$class} = $new_value;
+  }
+  return $template_engine_objects{$class};
+}
+
 sub param {
   my $self  = shift;
   my $name  = shift;
@@ -48,20 +91,13 @@ sub param {
 }
 
 sub add_params {
-  # Yes, it's identical to set()
   my $self   = shift;
   my %params = @_;
   @{$self->{params}}{keys %params} = values %params;
   return $self;
 }
 
-sub set {
-  # Yes, it's identical to add_params()
-  my $self   = shift;
-  my %params = @_;
-  @{$self->{params}}{keys %params} = values %params;
-  return $self;
-}
+*set = \&add_params;
 
 sub use {
   my $self = shift;
@@ -76,7 +112,7 @@ sub output {
   my $self     = shift;
   my $filename = shift || $self->{template};
 
-  my $t = $self->{template_system_object};
+  my $t = $self->{template_engine_object};
   $t->process($filename, $self->{params}, $self->{response_object}) || die 'Unable to process template: ', $t->error, $!;
 }
 
