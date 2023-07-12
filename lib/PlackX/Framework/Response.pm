@@ -4,6 +4,9 @@ use parent 'Plack::Response';
 use strict;
 use warnings;
 
+sub is_request  { 0 }
+sub is_response { 1 }
+
 sub new {
   my $class = shift;
   my $self  = $class->SUPER::new(@_);
@@ -63,7 +66,7 @@ sub post_response_callbacks {
 
 sub stash {
   my $self = shift;
-  die "$self - stash not set up" unless $self->{stash} and ref $self->{stash};
+  return undef unless $self->{stash} and ref $self->{stash};
   return $self->{stash};
 }
 

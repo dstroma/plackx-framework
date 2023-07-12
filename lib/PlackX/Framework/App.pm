@@ -2,8 +2,10 @@ package PlackX::Framework::App;
 
 use strict;
 use warnings;
+
 use Scalar::Util qw(blessed);
 use Try::Tiny;
+use Module::Loaded ();
 
 # Public class method
 sub to_app {
@@ -14,20 +16,12 @@ sub to_app {
 }
 
 # Public class method
-# Normally should be called as $request->reroute($where)
-sub handle_reroute {
-  my $class    = shift;
-  my $request  = shift;
-  my $where_to = shift;
-
-  # TODO - See if there is a less hacky way to do this, and check compatibility with different servers/environments
-  $request->{'env'}{'PATH_INFO'} = $where_to;
-  return $class->handle_request($request); # TODO maybe this should just be ->route or maybe we need both a reroute method and a rehandle method
-}
-
-# Public class method
 sub not_found_response {
   return [404, [], ['Not Found']];
+}
+
+sub error_response {
+  return [500, [], ['Internal Server Error']];
 }
 
 sub handle_request {
@@ -44,15 +38,17 @@ sub handle_request {
   $request->set_app_class($class);
 
   # Set up stash
-  my $stash = {};
+  my $stash = ($request->stash or $response->stash or {});
   $request->set_stash($stash);
   $response->set_stash($stash);
 
   # Try to set up templating lazy (app must subclass ::Template)
-  try {
-    my $template = ($app_namespace . '::Template')->new($response);
-    $response->template($template);
-  };
+  if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
+    try {
+      my $template = ($app_namespace . '::Template')->new($response);
+      $response->template($template);
+    };
+  }
 
   # Set response defaults
   $response->status(200);
@@ -75,14 +71,19 @@ sub route_request {
     return finalized_response($prefilter_result) if $prefilter_result;
 
     # Execute main action
-    $response = $match->{action}->($request, $response);
+    my $result = $match->{action}->($request, $response);
+
+    # Check if the "response" is actually another "request" (despite the variable name)
+    return $class->handle_request($result) if $result->is_request;
+    return $class->error_response unless $result->is_response;
+    $response = $result;
 
     # Execute postfilters
     my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
     return finalized_response($postfilter_result) if $postfilter_result;
 
     # Finish
-    return finalized_response($response) if is_valid_response($response);    
+    return finalized_response($response) if is_valid_response($response);
   }
 
   return $class->not_found_response;

@@ -8,22 +8,26 @@ our $bases   = {};
 our $routers = {};
 
 sub import {
-  my $router_class     = shift;
-  my $controller_class = caller(0);
+  my $class     = shift;
+  my $export_to = caller(0);
+
+  # Trap errors
+  die "You must import from your app's sublcass of PlackX::Framework::Router, not directly"
+    if $class eq __PACKAGE__;
 
   # Remember which controller is using which router engine object
-  $routers->{$controller_class} = $router_class->engine;
+  $routers->{$export_to} = $class->engine; # this might be a bug?
 
   # Export
   no strict 'refs';
   foreach my $exportsub (qw(request request_base filter)) {
-    *{$controller_class . '::' . $exportsub} = \&{$exportsub};
+    *{$export_to . '::' . $exportsub} = \&{$exportsub};
   }
 }
 
 sub filter {
   my $when      = shift;
-  my $coderef   = shift;
+  my $action    = shift;
   my @slurp     = @_;
   my ($package) = caller;
 
@@ -31,8 +35,10 @@ sub filter {
     die "usage: filter ('before' || 'after') => sub {}";
   }
 
+  $action = _action_to_subref($action, $package);
+
   _add_filter($package, $when, {
-    action     => $coderef,
+    action     => $action,
     controller => $package,
     'when'     => $when,
     params     => \@slurp
@@ -42,17 +48,20 @@ sub filter {
 
 sub request {
   my $routespec = shift;
-  my $coderef   = shift;
+  my $action    = shift;
   my ($package) = caller;
   my $router    = $routers->{$package};
+
+  $action = _action_to_subref($action, $package);
 
   $router->add_route(
      routespec   => $routespec,
      base        => $bases->{$package},
      prefilters  => _get_filters($package, 'before'),
-     action      => $coderef,
+     action      => $action,
      postfilters => _get_filters($package, 'after'),
   );
+
   return;
 }
 
@@ -87,6 +96,18 @@ sub _add_filter {
   my $spec  = shift;
   $filters->{$class}{$when} ||= [];
   push @{   $filters->{$class}{$when}   }, $spec;
+}
+
+sub _action_to_subref {
+  my ($action, $package) = @_;
+  if (not ref $action) {
+    if ($action =~ m/::/) {
+      $action = \&{ $action };
+    } else {
+      $action = \&{ $package . '::' . $action };
+    }
+  }
+  return $action;
 }
   
 1;
