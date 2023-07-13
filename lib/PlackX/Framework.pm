@@ -22,7 +22,7 @@ our %modules = (
   Response         => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
   Router           => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
   'Router::Engine' => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Template         => { auto_load_subclass => 1, auto_create_subclass => 1 },
+  Template         => { auto_load_subclass => 1, auto_create_subclass => 1, use_corinna => 1 },
   URI              => { auto_load_subclass => 1 },
 );
 
@@ -40,7 +40,11 @@ sub import {
 
     # Automatically create any that don't exist, unless auto_create_subclass is false
     if ($modules{$module}->{auto_create_subclass}) {
-      generate_subclass($caller . '::' . $module => "PlackX::Framework::$module") unless $loaded{$module};
+      if ($modules{$module}->{use_corinna}) {
+        generate_corinna_subclass($caller . '::' . $module => "PlackX::Framework::$module") unless $loaded{$module};
+      } else {
+        generate_subclass($caller . '::' . $module => "PlackX::Framework::$module") unless $loaded{$module};
+      }
     }
   }
 
@@ -74,6 +78,20 @@ sub generate_subclass {
     use parent '$base_class';
     Module::Loaded::mark_as_loaded($new_class);
     1;
+  } or die $@;
+}
+
+sub generate_corinna_subclass {
+  my ($new_class, $base_class) = @_;
+
+  # Create the package/class - must use string eval
+  eval qq{
+    use experimental 'class';
+    class $new_class :isa($base_class) {
+      use $base_class ();
+      Module::Loaded::mark_as_loaded($new_class);
+      1;
+    }
   } or die $@;
 }
 

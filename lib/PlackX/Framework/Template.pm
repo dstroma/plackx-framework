@@ -1,126 +1,90 @@
-package PlackX::Framework::Template;
+use v5.38;
+use experimental qw(class try);
 
-use warnings;
-use strict;
-use Try::Tiny;
+class PlackX::Framework::Template {
 
-my %template_engine_objects = ();
+  field $response :param;
+  field $engine :param = undef;
+  field $template; 
+  field $params = {};
 
-1;
+  # We store an engine object for each subclass (override by supplying an engine in ->new())
+  my %engine_registry = ();
 
-=pod
+  ###
+  ### Import
+  ###
 
-SYNOPSIS 
+  sub import ($class, $options) {
+    # Trap errors
+    die "Import from your app's sublcass of PlackX::Framework::Template, not directly"
+      if $class eq __PACKAGE__;
 
-my $tt_object = Template->new(...);
-my $response  = Plack::Response->new(...);
-PlackX::Framework::Template->new($response);
+    # Do nothing if get_template_system_object returns something
+    return if $engine_registry{$class};
 
-=cut
+    # By default, setup Template Toolkit
+    my $engine;
+    my %engine_options = ref $options ? %$options : ();
+    $engine_options{'INCLUDE_PATH'} = 'template' unless exists $engine_options{'INCLUDE_PATH'};
 
-sub import {
-  my $class   = shift;
-  my $options = shift if ref $_[0];
+    try {
+      require Template;
+      $engine_registry{$class} = Template->new(\%engine_options);
+    } catch ($err) {
+      warn "Tried to 'require Template' (Template Toolkit) but failed: $err\n";
+    }
 
-  # Trap errors
-  die "You must import from your app's sublcass of PlackX::Framework::Template, not directly"
-    if $class eq __PACKAGE__;
-
-  # Do nothing if get_template_system_object returns something
-  return if $class->get_template_engine;
-
-  # By default, setup Template Toolkit
-  my $engine;
-  my %engine_options = %$options;
-  unless (exists $engine_options{'INCLUDE_PATH'}) {
-    $engine_options{'INCLUDE_PATH'} = 'template';
+    return;
   }
 
-  try {
-    require Template;
-    $engine = Template->new(\%engine_options);
-    $class->template_engine($engine);
-    warn "Template toolkit loaded successfully";
-  } catch {
-    warn "Unable to load Template Toolkit: $_[0]";
-  };
+  ###
+  ### Methods
+  ###
 
-  return;
-}
-
-sub new {
-  my $class     = shift;
-  my $response  = shift;
-  my $templater = shift;
-  my $self      = bless {}, $class;
-
-  die 'Usage: ->new($response_object)' unless $response and ref $response;
-
-  unless ($templater) {
-    $templater = $class->get_template_engine();
-    die 'Not a valid template engine object' unless $templater and ref $templater;
+  method get_engine () {
+    my $for_class = ref $self;
+    $engine ||= $engine_registry{$for_class};
+    $engine || warn "No template engine has been defined for $for_class.\n";
+    $engine
   }
 
-  $self->{template_engine_object} = $templater;
-  $self->{response_object} = $response;
-  $self->{params} = {};
-  $self->{template} = undef;
-
-  return $self;
-}
-
-sub get_template_engine {
-  return $_[0]->template_engine;
-}
-
-sub template_engine {
-  my $self  = shift;
-  my $class = ref $self ? ref $self : $self;
-  if (@_) {
-    my $new_value = shift;
-    $template_engine_objects{$class} = $new_value;
+  method set_engine ($new_engine) {
+    $engine = $new_engine;
   }
-  return $template_engine_objects{$class};
-}
 
-sub param {
-  my $self  = shift;
-  my $name  = shift;
-  $self->{params}{$name} = shift if @_ > 0;
-  return $self->{params}{$name};
-}
+  # Get or set a single param
+  method param ($name, @splat) {
+    $params->{$name} = shift @splat if @splat;
+    $params->{$name};
+  }
 
-sub add_params {
-  my $self   = shift;
-  my %params = @_;
-  @{$self->{params}}{keys %params} = values %params;
-  return $self;
-}
+  # Set one or many params
+  method add_params (%new_params) {
+    @{$params}{keys %new_params} = values %new_params;
+    $self;
+  }
 
-*set = \&add_params;
+  # Same as above
+  method set (%new_params) {
+    @{$params}{keys %new_params} = values %new_params;
+    $self;
+  }
 
-sub use {
-  my $self = shift;
-  my $tmpl = shift;
-  $self->{template} = $tmpl;
-}
+  # Name a template file or template content
+  method use ($new_template) {
+    $template = $new_template;
+    $self;
+  }
 
-sub output {
-  # This method assumes that template_system_object is a Template Toolkit object
-  # or another object with a similar process() method. If your choose a different
-  # templating system, you should override this method in your subclass.
-  my $self     = shift;
-  my $filename = shift || $self->{template};
+  method output ($new_template = undef) {
+    $template = $new_template // $template;
+    $self->get_engine->process($template, $params, $response);
+  }
 
-  my $t = $self->{template_engine_object};
-  $t->process($filename, $self->{params}, $self->{response_object}) || die 'Unable to process template: ', $t->error, $!;
-}
-
-sub render {
-  # This method outputs a template and returns the response object in one step
-  # (Should it actually be a method of the response object instead?)
-  my $self = shift;
-  $self->output(@_);
-  return $self->{response_object};
+  method render {
+    $self->output(@_);
+    $response;
+  }
 }
 

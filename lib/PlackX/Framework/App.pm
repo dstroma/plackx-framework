@@ -45,7 +45,7 @@ sub handle_request {
   # Try to set up templating lazy (app must subclass ::Template)
   if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
     try {
-      my $template = ($app_namespace . '::Template')->new($response);
+      my $template = ($app_namespace . '::Template')->new(response => $response);
       $response->template($template);
     };
   }
