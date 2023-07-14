@@ -123,13 +123,6 @@ However, a larger application would be typically laid out with separate modules
 in separate files, for example in MyProject::Controller::* modules. Each should
 use MyProject::Router if the DSL-style routing is desired.
 
-PlackX::Framework has an object-oriented design philosophy that uses both
-inheritance and composition to implement its features. Symbols exported are
-limited to avoid polluting your namespace, however, a lot of the "magic" is
-implemented with the import() method, so be careful about using empty
-parenthesis in your use statements. Also be careful about whether you should
-`use` a module or `use parent` a module.
-
 
 =head1 DESCRIPTION
 
@@ -160,8 +153,8 @@ The PlackX::Framework::Request and PlackX::Framework::Response modules are
 subclasses of Plack::Request and Plack::Response sprinkled with additional
 features. See the documentation of those modules for details.
 
-The PlackX::Framework::URI module is a subclass URI, enables the additional
-methods from URI::QueryParam, and adds some shortcut methods.
+The PlackX::Framework::URI module is a subclass of URI::Fast, with some
+syntactic sugar.
 
 The PlackX::Framework::Router::Engine is a subclass of Router::Boom with some
 extra convenience methods. Normally, you would not have to use this module
@@ -172,6 +165,49 @@ Template Toolkit, offering several convenience methods. If you desire to use
 a different templating system from TT, you may override as many methods as
 necessary in your subclass. A new instance of this class is generated for
 each request by the app() method of PlackX::Framework::App.
+
+
+=head2 Why Another Framework?
+
+After converting a mod_perl2 web application to use Plack instead, where
+Plack::Request and Plack::Response replaced Apache2::Request and
+Apache2::Response, I realized I was basically using Plack as a low-level
+framework with some glue code and extra features. That framework has been
+extracted, refined, and expanded into this product.
+
+The end result is a simple, lightweight framework that is higher level
+than using the raw Plack building blocks, although it does not have as many
+features as other frameworks. Here are some advantages:
+
+ - A basic PlackX::Framework "Hello World" application loads 75% faster
+   than a Dancer2 application and 70% faster than a Mojolicious::Lite app.
+   (Note that application execution time has not been benchmarked.)
+
+ - A basic PlackX::Framework "Hello World" application uses approximately
+   one-third the memory of either Dancer2 or Mojolicious::Lite (~10MB compared
+   to ~30MB for each of the other two).
+
+ - PlackX::Framework has few non-core dependencies (it has more than 
+   Mojolicious, which has none, but much fewer than Dancer2, which
+   has a lot.)
+
+ - PlackX::Framework has some magic, but not too much. It can be easily
+   overriden with subclassing. You can use the bundled router engine
+   or supply your own. You can use Template Toolkit automagically or use
+   a different template engine.
+
+If the above isn't enough justification, then this should be: TIMTOWTDI.
+
+
+=head2 Object Orientation
+
+PlackX::Framework has an object-oriented design philosophy that uses both
+inheritance and composition to implement its features. Symbols exported are
+limited to avoid polluting your namespace, however, a lot of the "magic" is
+implemented with the import() method, so be careful about using empty
+parenthesis in your use statements. Also be careful about whether you should
+use a module or subclass it. Generally, modifying the behavior of the framework
+itself will involve subclassing, while using the framework will not.
 
 
 =head2 Routes, Requests, and Request Filtering
