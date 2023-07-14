@@ -6,10 +6,12 @@ use warnings;
 our $filters = {};
 our $bases   = {};
 our $routers = {};
+our @EXPORT  = qw(request request_base filter);
 
 sub import {
   my $class     = shift;
   my $export_to = caller(0);
+  my @wants     = @_;
 
   # Trap errors
   die "You must import from your app's sublcass of PlackX::Framework::Router, not directly"
@@ -18,9 +20,19 @@ sub import {
   # Remember which controller is using which router engine object
   $routers->{$export_to} = $class->engine; # this might be a bug?
 
+  # Determine what to export
+  my @exports = @EXPORT;
+  if (@wants > 0) {
+    my %exports = map { $_ => 1 } @EXPORT;
+    for my $want (@wants) {
+      die "$class does not export $want" unless $exports{$want};
+    } 
+    @exports = @wants;
+  }
+
   # Export
   no strict 'refs';
-  foreach my $exportsub (qw(request request_base filter)) {
+  foreach my $exportsub (@exports) {
     *{$export_to . '::' . $exportsub} = \&{$exportsub};
   }
 }

@@ -40,7 +40,6 @@ sub import {
     require Template;
     $engine = Template->new(\%engine_options);
     $class->template_engine($engine);
-    warn "Template toolkit loaded successfully";
   } catch {
     warn "Unable to load Template Toolkit: $_[0]";
   };
