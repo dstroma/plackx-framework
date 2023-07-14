@@ -65,3 +65,24 @@ $p->x(12);
 
 say "x is " . $p->x;
 use Point;
+
+######
+
+package MyPackage {
+  BEGIN {
+    Module::Loaded::mark_as_loaded('MyPackage');
+  }
+  sub mypackagemethod {
+    my $self = shift;
+    say $self;
+  }
+  sub new {
+    bless {}, shift;
+  }
+}
+
+class MyPackage::Subclass {
+  our @ISA = 'MyPackage';
+
+}
+
