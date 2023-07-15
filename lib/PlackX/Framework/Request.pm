@@ -1,3 +1,75 @@
+use v5.38;
+use experimental 'class';
+
+class PlackX::Framework::RequestClass {
+
+  use Plack::Request ();
+
+  # Method names to be delegated to Plack::Request
+  our @delegate_methods = qw(
+    env
+    address
+    remote_host
+    protocol
+    method
+    port
+    user
+    request_uri
+    path_info
+    path
+    query_string
+    script_name
+    scheme
+    secure
+    body
+    input
+    content_length
+    content_type
+    session
+    session_options
+    logger
+    cookies
+    content
+    raw_body
+    headers
+    content_encoding
+    header
+    referer
+    user_agent
+    query_parameters
+    body_parameters
+    parameters
+    uploads
+    param
+    upload
+    uri
+    base
+    new_response
+    request_body_parser
+  );
+
+  field $env :param;
+  field $_preq;
+
+  ADJUST {
+    $_preq = Plack::Request->new($env);
+  }
+
+  method _preq   () { $_preq }
+  method is_post () { uc $self->method eq 'POST' }
+  method is_get  () { uc $self->method eq 'GET' }
+
+  (eval "method $_ { \$self->_preq->$_(\@_) }; 1;" or die $@) for @delegate_methods; 
+
+}
+
+#  BEGIN 
+#  {
+#    (eval "class PlackX::Framework::RequestClass { method param { \$prq }; 1; }" or die "$@") for PlackX::Framework::RequestClass::delegate_methods();
+#  }
+
+=pod
+
 package PlackX::Framework::Request;
 use parent 'Plack::Request';
 
