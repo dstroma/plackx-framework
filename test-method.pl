@@ -16,6 +16,8 @@ class CorinnaPoint {
   field $y :param;
   field $_point;
 
+  field ($reala, $realb, $realc);
+
   ADJUST { $_point = Point->new($x, $y); }
 
   our @delegated_methods = qw(move_right move_left move_up move_down);

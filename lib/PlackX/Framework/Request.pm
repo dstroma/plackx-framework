@@ -3,16 +3,79 @@ use experimental 'class';
 
 class PlackX::Framework::RequestClass {
 
+  field $env :param;
+  field $app_class;
+  field $_preq;
+
+=pod
+
+  # Not used at this time
+  field $address;
+  field $remote_host;
+  field $protocol;
+  field $method;
+  field $port;
+  field $user;
+  field $request_uri;
+  field $path_info;
+  field $path;
+  field $query_string;
+  field $script_name;
+  field $scheme;
+  field $secure;
+  field $body;
+  field $input;
+  field $content_length;
+  field $content_type;
+  field $session;
+  field $session_options;
+  field $logger;
+  field $cookies;
+  field $content;
+  field $raw_body;
+  field $headers;
+  field $content_encoding;
+  field $header;
+  field $referer;
+  field $user_agent;
+  field $query_parameters;
+  field $body_parameters;
+  field $parameters;
+  field $uploads;
+  field $upload;
+  field $uri;
+  field $base;
+  field $new_response;
+  field $request_body_parser;
+=cut
+
   use Plack::Request ();
+  ADJUST {
+    $_preq = Plack::Request->new($env);
+
+    my $r        = $_preq;
+    $env         = $r->env;
+    $address     = $r->address;
+    $remote_host = $r->remote_host;
+    $protocol    = $r->protocol;
+    $method      = $r->method;
+    $port        = $r->port;
+    $user        = $r->user;
+    $request_uri = $r->request_uri;
+
+  
+  }
+
+  method is_request  { 1 }
+
 
   # Method names to be delegated to Plack::Request
-  our @delegate_methods = qw(
-    env
-    address
-    remote_host
-    protocol
-    method
-    port
+  method env         { $_preq->env(@_)         }
+  method address     { $_preq->address(@_)     }
+  method remote_host { $_preq->remote_host(@_) }
+  method protocol    { $_preq->protocol(@_)    }
+  method method      { $_preq->method(@_)      }
+  method port        { $_preq->port(@_)        }
     user
     request_uri
     path_info
@@ -48,12 +111,6 @@ class PlackX::Framework::RequestClass {
     request_body_parser
   );
 
-  field $env :param;
-  field $_preq;
-
-  ADJUST {
-    $_preq = Plack::Request->new($env);
-  }
 
   method _preq   () { $_preq }
   method is_post () { uc $self->method eq 'POST' }
