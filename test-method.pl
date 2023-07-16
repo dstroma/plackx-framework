@@ -16,7 +16,12 @@ class CorinnaPoint {
   field $y :param;
   field $_point;
 
-  field ($reala, $realb, $realc);
+  sub new {
+      die "new...";
+      
+  }
+
+#  field ($reala, $realb, $realc);
 
   ADJUST { $_point = Point->new($x, $y); }
 
@@ -38,6 +43,11 @@ class CorinnaPoint {
     say "A point at ($real_x, $real_y)";
   }
 
+  method protected {
+    my $c = caller(0);
+    say "Protected method called by caller $c";
+  }
+
 }
 
 my $p = CorinnaPoint->new('x' => 7, 'y' => 3);
@@ -47,6 +57,17 @@ $p->describe;
 
 say $p;
 say $p->_point;
+
+say $p->protected;
+
+class CorinnaPoint::Subclass :isa(CorinnaPoint) {
+  method hush () {
+      $self->protected;
+  }
+}
+
+my $p2 = CorinnaPoint::Subclass->new(x => 100, y => 100);
+$p2->hush;
 
 our @delegated_methods = qw(move_right move_left move_up move_down);
 my $class_defn = q`

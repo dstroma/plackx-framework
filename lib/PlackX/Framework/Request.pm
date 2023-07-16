@@ -66,6 +66,11 @@ class PlackX::Framework::RequestClass {
   
   }
 
+  method protected {
+      my $caller = caller(0);
+      unless ($caller->isa...)
+  }
+
   method is_request  { 1 }
 
 
