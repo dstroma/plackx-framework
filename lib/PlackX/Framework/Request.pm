@@ -4,14 +4,15 @@ use warnings;
 package PlackX::Framework::Request;
 use parent 'Plack::Request';
 
-use constant MAX_REROUTES => 100;
 use Try::Tiny;
+use Carp qw(croak);
 
-sub is_request  { 1 }
-sub is_response { 0 }
-sub is_post     { uc shift->method eq 'POST' }
-sub is_get      { uc shift->method eq 'GET'  }
-sub is_ajax     { uc shift->header('X-Requested-With') eq uc 'XMLHttpRequest' }
+sub max_reroutes { 100 }
+sub is_request   {   1 }
+sub is_response  {   0 }
+sub is_post      { uc shift->method eq 'POST' }
+sub is_get       { uc shift->method eq 'GET'  }
+sub is_ajax      { uc shift->header('X-Requested-With') eq uc 'XMLHttpRequest' }
 
 # Override Plack::Request->uri so we can use our subclass of URI::Fast
 sub uri {
@@ -35,23 +36,27 @@ sub uri {
 }
 
 sub destination {
-  my $self     = shift;
-  if ($self->{'plackx.framework.reroutes'}) {
-    my $last_i = $#{  $self->{'plackx.framework.reroutes'}  };
-    die 'Maximum number of reroutes '.MAX_REROUTES." exceeded. Routes oldest to newest are:\n"
-      . join("\n", @{  $self->{'plackx.framework.reroutes'}  })
-      . "\n"
-      if $last_i > MAX_REROUTES;
-    return $self->{'plackx.framework.reroutes'}->[$last_i];
-  }
-  $self->path_info;
+  my $self = shift;
+  $self->{destination} || $self->path_info;
 }
 
 sub reroute {
-  my $self     = shift;
-  my $where_to = shift;
-  $self->{'plackx.framework.reroutes'} //= [$self->{'env'}{'PATH_INFO'}];
-  push @{  $self->{'plackx.framework.reroutes'}  }, $where_to;
+  my $self = shift;
+  my $dest = shift;
+  $self->{'plackx.framework.reroute_count'} ||= 0;
+  $self->{'plackx.framework.reroute_count'}  += 1;
+  $self->{'plackx.framework.reroutes'}      //= [$self->path_info];
+  push @{  $self->{'plackx.framework.reroutes'}  }, $dest;
+
+  # Protect against recusrive reroutes
+  my $max_reroutes = $self->max_reroutes;
+  if ($self->{'plackx.framework.reroute_count'} > $max_reroutes) {
+    croak "Maximum number of reroutes $max_reroutes exceeded. Routes oldest to newest are:\n"
+    . join("\n", @{  $self->{'plackx.framework.reroutes'}  })
+    . "\n";
+  }
+
+  $self->{destination} = $dest;
   return $self;
 }
 
