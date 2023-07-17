@@ -63,7 +63,7 @@ sub route_request {
   my $response = shift;
   my $router   = ($class->app_namespace . '::Router::Engine')->router;
 
-  if (my $match = $router->match($request->env)) {
+  if (my $match = $router->match($request)) {
     $request->set_route_parameters($match);
 
     # Execute prefilters

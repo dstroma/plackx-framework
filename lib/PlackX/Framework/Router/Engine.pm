@@ -13,9 +13,9 @@ sub router {
 
 sub match {
   my $self     = shift;
-  my $env      = shift;
-  my $req_path = $env->{'PATH_INFO'};
-  my $req_meth = $env->{'REQUEST_METHOD'};
+  my $request  = shift;
+  my $req_path = $request->destination;
+  my $req_meth = $request->method; 
   my @match    = $self->SUPER::match('/[' . $req_meth . ']' . $req_path);
 
   if (@match and @match == 2) {
