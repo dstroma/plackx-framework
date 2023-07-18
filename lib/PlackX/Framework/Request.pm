@@ -1,17 +1,19 @@
+use 5.10.0;
 use strict;
 use warnings;
 
 package PlackX::Framework::Request;
 use parent 'Plack::Request';
-
 use Try::Tiny;
 use Carp qw(croak);
 
 sub max_reroutes { 100 }
 sub is_request   {   1 }
 sub is_response  {   0 }
-sub is_post      { uc shift->method eq 'POST' }
-sub is_get       { uc shift->method eq 'GET'  }
+sub is_get       { uc shift->method eq 'GET'    }
+sub is_post      { uc shift->method eq 'POST'   }
+sub is_put       { uc shift->method eq 'PUT'    }
+sub is_delete    { uc shift->method eq 'DELETE' }
 sub is_ajax      { uc shift->header('X-Requested-With') eq uc 'XMLHttpRequest' }
 
 # Override Plack::Request->uri so we can use our subclass of URI::Fast
@@ -61,7 +63,8 @@ sub reroute {
 }
 
 sub app_class {
-  shift->{app_class};
+  my $self = shift;
+  $self->{app_class};
 }
 
 sub set_app_class {
@@ -70,7 +73,8 @@ sub set_app_class {
 }
 
 sub stash {
-  shift->{stash};
+  my $self = shift;
+  $self->{stash};
 }
 
 sub set_stash {

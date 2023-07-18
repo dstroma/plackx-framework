@@ -1,33 +1,31 @@
-package PlackX::Framework;
-
+use v5.10.0;
 use strict;
 use warnings;
-use 5.010000;
 
-use Module::Loaded ();
-
+package PlackX::Framework;
 use PlackX::Framework::App ();
 use PlackX::Framework::Request ();
 use PlackX::Framework::Response ();
 use PlackX::Framework::Router ();
 use PlackX::Framework::Router::Engine ();
+use Module::Loaded ();
 
 # Not everyone will need these modules, do not load by default
 #use PlackX::Framework::Template ();
 #use PlackX::Framework::URI (); 
 
 our %modules = (
-  App              => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Request          => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Response         => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Router           => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  'Router::Engine' => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-  Template         => { auto_load_subclass => 1, auto_create_subclass => 1 },
-  URI              => { auto_load_subclass => 1 },
+  'App'              => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  'Request'          => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  'Response'         => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  'Router'           => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  'Router::Engine'   => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+  'Template'         => { auto_load_subclass => 1, auto_create_subclass => 1 },
+  'URI'              => { auto_load_subclass => 1 },
 );
 
 sub import {
-  # "use"ing this module will load or create subclasses in your namespace
+  # "use"ing this module will load or create subclasses in caller's namespace
   my $caller = caller(0);
 
   # Load the application's subclassed versions of PlackX::Framework::*
@@ -70,7 +68,6 @@ sub generate_subclass {
   # Create the package/class - must use string eval
   eval qq{
     package $new_class;
-    use $base_class ();
     use parent '$base_class';
     Module::Loaded::mark_as_loaded($new_class);
     1;

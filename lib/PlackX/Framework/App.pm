@@ -1,10 +1,9 @@
-package PlackX::Framework::App;
-
+use 5.10.0;
 use strict;
 use warnings;
 
+package PlackX::Framework::App;
 use Scalar::Util qw(blessed);
-use Try::Tiny;
 use Module::Loaded ();
 
 # Public class method
@@ -44,10 +43,7 @@ sub handle_request {
 
   # Try to set up templating lazy (app must subclass ::Template)
   if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
-    try {
-      my $template = ($app_namespace . '::Template')->new($response);
-      $response->template($template);
-    };
+    $response->template(  ($app_namespace . '::Template')->new($response)  );
   }
 
   # Set response defaults
