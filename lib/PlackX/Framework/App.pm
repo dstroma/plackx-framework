@@ -41,6 +41,10 @@ sub handle_request {
   $request->set_stash($stash);
   $response->set_stash($stash);
 
+  # Store some things in the stash and clear flash
+  $stash->{'_app_namespace'} = $app_namespace;
+  $response->flash;
+
   # Try to set up templating lazy (app must subclass ::Template)
   if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
     eval {

@@ -6,6 +6,7 @@ package PlackX::Framework::Request;
 use parent 'Plack::Request';
 use Try::Tiny;
 use Carp qw(croak);
+use Digest::MD5 qw(md5_base64);
 
 sub max_reroutes { 100 }
 sub is_request   {   1 }
@@ -99,6 +100,19 @@ sub set_route_parameters {
   my $self = shift;
   my $new  = shift;
   $self->{route_parameters} = $new;
+}
+
+sub flash {
+  my $self  = shift;
+  my $name  = $self->flash_cookie_name;
+  $self->cookies->{$name};
+}
+
+sub flash_cookie_name {
+  my $self = shift;
+  # Cookie name is 'flash' . hashed class name of this object
+  my $name  = 'flash'. md5_base64($self->stash->{'_app_namespace'});
+  return $name;
 }
 
 1;

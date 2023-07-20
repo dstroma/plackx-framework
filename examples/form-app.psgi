@@ -11,6 +11,7 @@ package My::Example::App::Util {
 	use builtin 'trim';
 	no warnings 'experimental';
 	sub multitrim (@instrings) {
+		no warnings 'uninitialized';
 		my @outstrings;
 		foreach my $string (@instrings) {
 			my @lines = split /\n/, $string;
@@ -130,6 +131,17 @@ package My::Example::App::Controller {
 		$response->print('Please call us at 867-5309 for help!!!');
 		return $response;
 	}
+
+	# Demonstrate flash
+	request '/flash/set/:message' => sub ($request, $response) {
+		$response->flash($request->route_param('message'));
+		$response->redirect('/flash/view');
+		return $response;
+	};
+	request '/flash/view' => sub ($request, $response) {
+		$response->print($request->flash);
+		return $response;
+	};
 }
 
 #######################################################################
@@ -150,5 +162,6 @@ package My::Example::App::Controller::NoDSL {
 
 #######################################################################
 
-My::Example::App->app;
+my $app = My::Example::App->app;
+
 

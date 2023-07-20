@@ -4,6 +4,7 @@ use warnings;
 
 package PlackX::Framework::Response;
 use parent 'Plack::Response';
+use Digest::MD5 qw(md5_base64);
 
 sub is_request  { 0 }
 sub is_response { 1 }
@@ -46,7 +47,8 @@ sub no_cache {
 sub print {
   # Adds a line or lines to the body string
   my $self = shift;
-  $self->{_size} += length($_) for @_;
+  $self->{_size} ||= 0;
+  $self->{_size}  += (length($_) || 0) for @_;
   push @{$self->{_body}}, @_;
   return $self;
 }
@@ -78,6 +80,23 @@ sub set_stash {
   my $self = shift;
   my $hash = shift;
   $self->{stash} = $hash;
+}
+
+sub flash {
+  my $self    = shift;
+  my $value   = shift;
+  my $max_age = $value ? 120 : -1; # If value is false we delete the cookie
+
+  my $name  = $self->flash_cookie_name;
+  $self->cookies->{$name} = { value => $value, path => '/', 'max-age' => $max_age };
+  return $self;
+}
+
+sub flash_cookie_name {
+  my $self = shift;
+  # Cookie name is 'flash' . hashed class name of this object
+  my $name  = 'flash'. md5_base64($self->stash->{'_app_namespace'});
+  return $name;
 }
 
 sub template {
