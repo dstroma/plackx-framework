@@ -85,6 +85,15 @@ sub route_request {
     my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
     return finalized_response($postfilter_result) if $postfilter_result;
 
+    # Clean up
+    if ($response->post_response_callbacks and ref $response->post_response_callbacks and scalar @{  $response->post_response_callbacks  }) {
+      if ($request->env->{'psgix.cleanup'}) {
+        push @{  $request->env->{'psgix.cleanup.handlers'}  }, @{  $response->post_response_callbacks  };
+      } else {
+        $_->($request->env) for @{  $response->post_response_callbacks  };
+      }
+    }
+
     # Finish
     return finalized_response($response) if is_valid_response($response);
   }

@@ -125,12 +125,28 @@ package My::Example::App::Controller {
 		return $response;
 	};
 
-	# Demonstrate string action instead of coderef
+	# Demonstrate string action instead of coderef and a callback
 	request '/help' => 'help';
 	sub help ($request, $response) {
 		$response->print('Please call us at 867-5309 for help!!!');
+		$response->add_post_response_callback(sub ($env) {
+			warn "help - Cleanup callback! Sleeping for 5 seconds.\n";
+			warn( ($env->{'psgix.cleanup'} ? '(server supports cleanup handler)' : '(cleanup NOT supported)') . "\n");
+			sleep 5;
+		});
 		return $response;
 	}
+
+	# Demonstrate a callback (cleanup handler)
+	request '/callback' => sub ($request, $response) {
+		$response->add_post_response_callback(sub ($env) {
+			warn "help - Cleanup callback! Sleeping for 5 seconds.\n";
+			warn( ($env->{'psgix.cleanup'} ? '(server supports cleanup handler)' : '(cleanup NOT supported)') . "\n");
+			sleep 5;
+		});
+		$response->print('Callback added.');
+		return $response;
+	};
 
 	# Demonstrate flash
 	request '/flash/set/:message' => sub ($request, $response) {
@@ -163,5 +179,4 @@ package My::Example::App::Controller::NoDSL {
 #######################################################################
 
 my $app = My::Example::App->app;
-
 
