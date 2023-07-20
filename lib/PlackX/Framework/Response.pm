@@ -1,8 +1,9 @@
-package PlackX::Framework::Response;
-use parent 'Plack::Response';
-
+use v5.10;
 use strict;
 use warnings;
+
+package PlackX::Framework::Response;
+use parent 'Plack::Response';
 
 sub is_request  { 0 }
 sub is_response { 1 }
@@ -21,6 +22,9 @@ sub new {
 
   return bless $self, $class;
 }
+
+sub continue { return;       }
+sub stop     { return $_[0]; }
 
 sub no_cache {
   my $self = shift;

@@ -69,7 +69,8 @@ sub app_class {
 
 sub set_app_class {
   my $self = shift;
-  $self->{app_class} = shift;
+  my $new  = shift;
+  $self->{app_class} = $new;
 }
 
 sub stash {
@@ -78,13 +79,15 @@ sub stash {
 }
 
 sub set_stash {
-  my $self = shift;
-  $self->{stash} = shift;
+  my $self  = shift;
+  my $stash = shift;
+  $self->{stash} = $stash;
 }
 
 sub route_param {
   my $self = shift;
-  return $self->{route_parameters}{shift};
+  my $name = shift;
+  return $self->{route_parameters}{$name};
 }
 
 sub route_parameters {
@@ -94,7 +97,8 @@ sub route_parameters {
 
 sub set_route_parameters {
   my $self = shift;
-  $self->{route_parameters} = shift;
+  my $new  = shift;
+  $self->{route_parameters} = $new;
 }
 
 1;

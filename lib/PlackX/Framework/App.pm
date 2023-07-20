@@ -1,4 +1,4 @@
-use 5.10.0;
+use v5.10;
 use strict;
 use warnings;
 
@@ -43,7 +43,10 @@ sub handle_request {
 
   # Try to set up templating lazy (app must subclass ::Template)
   if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
-    $response->template(  ($app_namespace . '::Template')->new($response)  );
+    eval {
+      my $template = ($app_namespace . '::Template')->new($response);
+      $response->template($template);
+    };
   }
 
   # Set response defaults

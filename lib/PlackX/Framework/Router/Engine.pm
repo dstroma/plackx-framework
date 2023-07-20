@@ -1,8 +1,9 @@
-package PlackX::Framework::Router::Engine;
-use parent 'Router::Boom';
-
+use v5.10;
 use warnings;
 use strict;
+
+package PlackX::Framework::Router::Engine;
+use parent 'Router::Boom';
 
 our %routers;
 
@@ -22,10 +23,9 @@ sub match {
     my ($destin, $captures) = @match;
     my %matchinfo = (%$destin, %$captures);
     delete $matchinfo{REQUEST_METHOD};
-    return \%matchinfo;
-  } else {
-    return undef;
+    return bless \%matchinfo, 'PlackX::Framework::Router::Match';
   }
+  return undef;
 }
 
 sub add_route {

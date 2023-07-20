@@ -1,7 +1,8 @@
-package PlackX::Framework::Router;
-
+use v5.10;
 use strict;
 use warnings;
+
+package PlackX::Framework::Router;
 
 our $filters = {};
 our $bases   = {};
@@ -47,7 +48,7 @@ sub filter {
     die "usage: filter ('before' || 'after') => sub {}";
   }
 
-  $action = _action_to_subref($action, $package);
+  $action = _coerce_action_to_subref($action, $package);
 
   _add_filter($package, $when, {
     action     => $action,
@@ -64,7 +65,7 @@ sub request {
   my ($package) = caller;
   my $router    = $routers->{$package};
 
-  $action = _action_to_subref($action, $package);
+  $action = _coerce_action_to_subref($action, $package);
 
   $router->add_route(
      routespec   => $routespec,
@@ -82,6 +83,32 @@ sub request_base {
   my $base      = shift;
   $base = _remove_trailing_slash_from_uri($base);
   $bases->{$package} = $base;
+}
+
+# Class method-style route
+sub add_route {
+  my $class  = shift;
+  my $spec   = shift;
+  my $action = shift;
+  my ($package) = caller;
+
+  $routers->{$class} ||= $class->engine;
+  my $router = $routers->{$class};
+
+  $action = _coerce_action_to_subref($action, $package);
+
+  $router->add_route(
+     routespec   => $spec,
+     #base        => $bases->{$package},
+     #prefilters  => _get_filters($package, 'before'),
+     action      => $action,
+     #postfilters => _get_filters($package, 'after'),
+  );
+}
+
+# Class method-style filter
+sub add_filter {
+  die 'Not yet implemented';
 }
 
 sub engine {
@@ -110,7 +137,7 @@ sub _add_filter {
   push @{   $filters->{$class}{$when}   }, $spec;
 }
 
-sub _action_to_subref {
+sub _coerce_action_to_subref {
   my ($action, $package) = @_;
   if (not ref $action) {
     if ($action =~ m/::/) {
