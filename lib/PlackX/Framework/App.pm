@@ -6,15 +6,14 @@ package PlackX::Framework::App;
 use Scalar::Util qw(blessed);
 use Module::Loaded ();
 
-# Public class method
+# Public class methods
 sub to_app {
-  my $class   = shift;
+  my $class = shift;
   return sub {
     $class->handle_request(shift)
   };
 }
 
-# Public class method
 sub not_found_response {
   return [404, [], ['Not Found']];
 }
@@ -35,17 +34,14 @@ sub handle_request {
   my $response = $maybe_resp || ($app_namespace . '::Response')->new;
 
   $request->set_app_class($class);
+  $response->set_app_class($class);
 
   # Set up stash
   my $stash = ($request->stash or $response->stash or {});
   $request->set_stash($stash);
   $response->set_stash($stash);
 
-  # Store some things in the stash and clear flash
-  $stash->{'_app_namespace'} = $app_namespace;
-  $response->flash;
-
-  # Try to set up templating lazy (app must subclass ::Template)
+  # Maybe set up Templating, if loaded
   if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
     eval {
       my $template = ($app_namespace . '::Template')->new($response);
@@ -53,7 +49,8 @@ sub handle_request {
     };
   }
 
-  # Set response defaults
+  # Clear flash if set, set response defaults
+  $response->flash;
   $response->status(200);
   $response->content_type('text/html');
 
@@ -101,6 +98,9 @@ sub route_request {
   return $class->not_found_response;
 }
 
+#######################################################################
+# Helpers
+
 sub execute_filters {
   my $filters  = shift;
   my $request  = shift;
@@ -114,9 +114,6 @@ sub execute_filters {
 
   return;
 }
-
-#######################################################################
-# Helpers
 
 sub is_valid_response {
   my $response = pop;
@@ -147,23 +144,20 @@ sub env_or_req_to_req {
     return "$app_namespace\::Request"->new($env_or_req);
   } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
     return $env_or_req;
-  } else {
-    die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
   }
+  die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
 }
 
 sub env_or_req_to_env {
   my $class         = shift;
   my $env_or_req    = shift;
-  my $app_namespace = $class->app_namespace;
 
   if (ref $env_or_req and ref $env_or_req eq 'HASH') {
     return $env_or_req;
   } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
     return $env_or_req->env;
-  } else {
-    die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
   }
+  die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
 }
 
 1;

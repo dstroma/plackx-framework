@@ -140,11 +140,11 @@ package My::Example::App::Controller {
 	# Demonstrate a callback (cleanup handler)
 	request '/callback' => sub ($request, $response) {
 		$response->add_post_response_callback(sub ($env) {
-			warn "help - Cleanup callback! Sleeping for 5 seconds.\n";
+			warn "help - Cleanup callback! Sleeping for 5 seconds. $request $response\n";
 			warn( ($env->{'psgix.cleanup'} ? '(server supports cleanup handler)' : '(cleanup NOT supported)') . "\n");
 			sleep 5;
 		});
-		$response->print('Callback added.');
+		$response->print("Callback added. Request $request, response $response.");
 		return $response;
 	};
 

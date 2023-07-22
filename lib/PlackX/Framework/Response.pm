@@ -27,6 +27,17 @@ sub new {
 sub continue { return;       }
 sub stop     { return $_[0]; }
 
+sub app_class {
+  my $self = shift;
+  $self->{app_class};
+}
+
+sub set_app_class {
+  my $self = shift;
+  my $new  = shift;
+  $self->{app_class} = $new;
+}
+
 sub no_cache {
   my $self = shift;
   if (@_ > 0) {
@@ -86,17 +97,9 @@ sub flash {
   my $self    = shift;
   my $value   = shift;
   my $max_age = $value ? 120 : -1; # If value is false we delete the cookie
-
-  my $name  = $self->flash_cookie_name;
-  $self->cookies->{$name} = { value => $value, path => '/', 'max-age' => $max_age };
+  my $cname   = 'flash' . md5_base64($self->app_class);
+  $self->cookies->{$cname} = { value => $value, path => '/', 'max-age' => $max_age };
   return $self;
-}
-
-sub flash_cookie_name {
-  my $self = shift;
-  # Cookie name is 'flash' . hashed class name of this object
-  my $name  = 'flash'. md5_base64($self->stash->{'_app_namespace'});
-  return $name;
 }
 
 sub template {
