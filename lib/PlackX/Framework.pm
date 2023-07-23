@@ -185,6 +185,17 @@ is better than any other framework except for the few trivial ones described
 above.
 
 
+=head2 Goals and Roadmap
+
+The goal of this project is to continue to be a lightweight framework that
+works closely with the PSGI specification. Future versions may require
+newer versions of perl. It is possible I may rewrite this module to use
+perl's built-in subroutine signatures, the new class feature, and whatever
+the future of perl has in store. If this is done, it may be released under
+a different name such that this module can continue to work with older
+perl versions.
+
+
 =head2 Object Orientation
 
 PlackX::Framework has an object-oriented design philosophy that uses both
@@ -239,20 +250,20 @@ This framework is databse/ORM agnostic, you are free to choose your own or use
 plain DBI/SQL.
 
 
-=head2 EXPORT
+=head1 EXPORT
 
 This module will export the method app, which returns the code reference of
 your app in accordance to the PSGI specification. (This is actually a shortcut
 to ::App->to_app.)
 
 
-=head1 Dependencies
+=head1 DEPENDENCIES
 
 Plack
 Router::Boom
 
 
-=head1 Optional Dependencies
+=head2 Optional Dependencies
 
 URI::Fast
 Template
@@ -273,7 +284,7 @@ Dondi Michael Stroma, E<lt>dstroma@gmail.com<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2016-2023 by Dondi Stroma
+Copyright (C) 2016-2023 by Dondi Michael Stroma
 
 
 =cut
