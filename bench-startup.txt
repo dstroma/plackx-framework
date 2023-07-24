@@ -1,0 +1,25 @@
+Dancer 2:
+  Start: Wed Jul 12 02:31:32 EDT 2023
+  End:   Wed Jul 12 02:41:00 EDT 2023
+  (96 distributions installed)
+  TOTAL: 9 minutes 28 seconds
+
+Plack, Plack::Req/Resp, Router::Boom
+  (Note: Does not include Template or URI::Fast)
+  Wed Jul 12 03:05:59 EDT 2023
+  44 distributions installed
+  Wed Jul 12 03:10:21 EDT 2023
+  TOTAL: 4 minutes 22 seconds
+
+Wed Jul 12 03:24:21 EDT 2023
+--> Working on Mojolicious::Lite
+Fetching http://www.cpan.org/authors/id/S/SR/SRI/Mojolicious-9.33.tar.gz ... OK
+Configuring Mojolicious-9.33 ... OK
+Building and testing Mojolicious-9.33 ... OK
+Successfully installed Mojolicious-9.33
+1 distribution installed
+Wed Jul 12 03:25:07 EDT 2023
+  TOTAL: (less than 1 minute)
+
+
+
