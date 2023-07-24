@@ -95,7 +95,7 @@ sub flash {
   my $value   = shift;
   my $max_age = $value ? 120 : -1; # If value is false we delete the cookie
   my $cname   = 'flash' . md5_base64($self->app_class);
-  $self->cookies->{$cname} = { value => $value, path => '/', 'max-age' => $max_age };
+  $self->cookies->{$cname} = { value => ($value || ''), path => '/', 'max-age' => $max_age };
   return $self;
 }
 
