@@ -1,15 +1,18 @@
-package PlackX::Framework::Router;
-
+use v5.10;
 use strict;
 use warnings;
+
+package PlackX::Framework::Router;
 
 our $filters = {};
 our $bases   = {};
 our $routers = {};
+our @EXPORT  = qw(request request_base filter);
 
 sub import {
   my $class     = shift;
   my $export_to = caller(0);
+  my @wants     = @_;
 
   # Trap errors
   die "You must import from your app's sublcass of PlackX::Framework::Router, not directly"
@@ -18,9 +21,19 @@ sub import {
   # Remember which controller is using which router engine object
   $routers->{$export_to} = $class->engine; # this might be a bug?
 
+  # Determine what to export
+  my @exports = @EXPORT;
+  if (@wants > 0) {
+    my %exports = map { $_ => 1 } @EXPORT;
+    for my $want (@wants) {
+      die "$class does not export $want" unless $exports{$want};
+    } 
+    @exports = @wants;
+  }
+
   # Export
   no strict 'refs';
-  foreach my $exportsub (qw(request request_base filter)) {
+  foreach my $exportsub (@exports) {
     *{$export_to . '::' . $exportsub} = \&{$exportsub};
   }
 }
@@ -35,7 +48,7 @@ sub filter {
     die "usage: filter ('before' || 'after') => sub {}";
   }
 
-  $action = _action_to_subref($action, $package);
+  $action = _coerce_action_to_subref($action, $package);
 
   _add_filter($package, $when, {
     action     => $action,
@@ -52,7 +65,7 @@ sub request {
   my ($package) = caller;
   my $router    = $routers->{$package};
 
-  $action = _action_to_subref($action, $package);
+  $action = _coerce_action_to_subref($action, $package);
 
   $router->add_route(
      routespec   => $routespec,
@@ -70,6 +83,32 @@ sub request_base {
   my $base      = shift;
   $base = _remove_trailing_slash_from_uri($base);
   $bases->{$package} = $base;
+}
+
+# Class method-style route
+sub add_route {
+  my $class  = shift;
+  my $spec   = shift;
+  my $action = shift;
+  my ($package) = caller;
+
+  $routers->{$class} ||= $class->engine;
+  my $router = $routers->{$class};
+
+  $action = _coerce_action_to_subref($action, $package);
+
+  $router->add_route(
+     routespec   => $spec,
+     #base        => $bases->{$package},
+     #prefilters  => _get_filters($package, 'before'),
+     action      => $action,
+     #postfilters => _get_filters($package, 'after'),
+  );
+}
+
+# Class method-style filter
+sub add_filter {
+  die 'Not yet implemented';
 }
 
 sub engine {
@@ -98,7 +137,7 @@ sub _add_filter {
   push @{   $filters->{$class}{$when}   }, $spec;
 }
 
-sub _action_to_subref {
+sub _coerce_action_to_subref {
   my ($action, $package) = @_;
   if (not ref $action) {
     if ($action =~ m/::/) {

@@ -1,8 +1,9 @@
-package PlackX::Framework::Router::Engine;
-use parent 'Router::Boom';
-
+use v5.10;
 use warnings;
 use strict;
+
+package PlackX::Framework::Router::Engine;
+use parent 'Router::Boom';
 
 our %routers;
 
@@ -13,19 +14,18 @@ sub router {
 
 sub match {
   my $self     = shift;
-  my $env      = shift;
-  my $req_path = $env->{'PATH_INFO'};
-  my $req_meth = $env->{'REQUEST_METHOD'};
+  my $request  = shift;
+  my $req_path = $request->destination;
+  my $req_meth = $request->method; 
   my @match    = $self->SUPER::match('/[' . $req_meth . ']' . $req_path);
 
   if (@match and @match == 2) {
     my ($destin, $captures) = @match;
     my %matchinfo = (%$destin, %$captures);
     delete $matchinfo{REQUEST_METHOD};
-    return \%matchinfo;
-  } else {
-    return undef;
+    return bless \%matchinfo, 'PlackX::Framework::Router::Match';
   }
+  return undef;
 }
 
 sub add_route {

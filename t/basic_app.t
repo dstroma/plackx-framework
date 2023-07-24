@@ -52,9 +52,11 @@ sub test4 {
 				use PlackX::Framework;
 				use $test_app_namespace\::Router;
 				request '/' => sub {
-					return [200, [], ["<html>test from process $$</html>"]];
+                    my (\$request, \$response) = \@_;
+					\$response->print("<html>test from process $$</html>");
+                    return \$response;
 				};
-				request '/fuck-you/hard' => sub { };
+				request '/empty' => sub { };
 			}
 			1;
 		},
