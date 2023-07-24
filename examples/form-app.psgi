@@ -1,11 +1,15 @@
 #!perl
 use v5.36;
 
+#######################################################################
+# Main module
+
 package My::Example::App {
 	use PlackX::Framework;
 }
 
 #######################################################################
+# For demonstrating filters
 
 package My::Example::App::Util {
 	use builtin 'trim';
@@ -24,6 +28,7 @@ package My::Example::App::Util {
 }
 
 #######################################################################
+# Main controller
 
 package My::Example::App::Controller {
 	use My::Example::App::Router;
@@ -161,8 +166,8 @@ package My::Example::App::Controller {
 }
 
 #######################################################################
-
 # Routing without DSL
+
 package My::Example::App::Controller::NoDSL {
 
 	My::Example::App::Router->add_route('/nodsl/:pagenum/view' => 'nodsl');
@@ -177,6 +182,7 @@ package My::Example::App::Controller::NoDSL {
 }
 
 #######################################################################
+# Return the application coderef
 
-my $app = My::Example::App->app;
+My::Example::App->app;
 

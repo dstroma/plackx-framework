@@ -43,6 +43,11 @@ sub import {
     if (!$loaded{$module} and $modules{$module}->{auto_create_subclass}) {
       generate_subclass($caller . '::' . $module => "PlackX::Framework::$module");
     }
+
+    # Verify required modules are loaded
+    if ($modules{$module}->{required}) {
+      die "Could not load or create required module $_" unless Module::Loaded::is_loaded($caller . '::' . $module);
+    }
   }
 
   export_app_sub($caller);

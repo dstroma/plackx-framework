@@ -14,13 +14,8 @@ sub to_app {
   };
 }
 
-sub not_found_response {
-  return [404, [], ['Not Found']];
-}
-
-sub error_response {
-  return [500, [], ['Internal Server Error']];
-}
+sub not_found_response { [404, [], ['Not Found']]              }
+sub error_response     { [500, [], ['Internal Server Error']]  }
 
 sub handle_request {
   my $class         = shift;
@@ -50,7 +45,7 @@ sub handle_request {
   }
 
   # Clear flash if set, set response defaults
-  $response->flash;
+  $response->flash(undef);
   $response->status(200);
   $response->content_type('text/html');
 

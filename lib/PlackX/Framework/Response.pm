@@ -8,6 +8,8 @@ use Digest::MD5 qw(md5_base64);
 
 sub is_request  { 0 }
 sub is_response { 1 }
+sub continue    { return; }
+sub stop        { $_[0]   }
 
 sub new {
   my $class = shift;
@@ -23,9 +25,6 @@ sub new {
 
   return bless $self, $class;
 }
-
-sub continue { return;       }
-sub stop     { return $_[0]; }
 
 sub app_class {
   my $self = shift;
@@ -70,7 +69,6 @@ sub size {
 }
 
 sub add_post_response_callback {
-  # Todo:: Check for mod_perl and add a perlcleanuphandler if mod_perl is present
   my $self = shift;
   my $code = shift;
   push @{$self->{_post_response_callbacks}}, $code;
@@ -83,7 +81,6 @@ sub post_response_callbacks {
 
 sub stash {
   my $self = shift;
-  return undef unless $self->{stash} and ref $self->{stash};
   return $self->{stash};
 }
 
@@ -104,12 +101,8 @@ sub flash {
 
 sub template {
   my $self = shift;
-  if (@_) {
-    $self->{_template} = shift;
-  }
-  if (!$self->{_template}) {
-    die "No template module loaded";
-  }
+  $self->{_template} = shift if @_;
+  die "No template module loaded" if !$self->{_template};
   return $self->{_template};
 }
 
