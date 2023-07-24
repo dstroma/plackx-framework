@@ -133,10 +133,9 @@ sub app_namespace {
 sub env_or_req_to_req {
   my $class         = shift;
   my $env_or_req    = shift;
-  my $app_namespace = $class->app_namespace;
 
   if (ref $env_or_req and ref $env_or_req eq 'HASH') {
-    return "$app_namespace\::Request"->new($env_or_req);
+    return ($class->app_namespace . '::Request')->new($env_or_req);
   } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
     return $env_or_req;
   }

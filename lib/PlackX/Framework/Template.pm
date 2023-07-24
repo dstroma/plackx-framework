@@ -1,7 +1,8 @@
-package PlackX::Framework::Template;
-
-use warnings;
+use v5.10;
 use strict;
+use warnings;
+
+package PlackX::Framework::Template;
 use Try::Tiny;
 
 my %template_engine_objects = ();
@@ -75,10 +76,7 @@ sub get_template_engine {
 sub template_engine {
   my $self  = shift;
   my $class = ref $self ? ref $self : $self;
-  if (@_) {
-    my $new_value = shift;
-    $template_engine_objects{$class} = $new_value;
-  }
+  $template_engine_objects{$class} = shift if @_;
   return $template_engine_objects{$class};
 }
 
@@ -109,7 +107,7 @@ sub output {
   # or another object with a similar process() method. If your choose a different
   # templating system, you should override this method in your subclass.
   my $self     = shift;
-  my $filename = shift || $self->{template};
+  my $filename = @_ ? shift : $self->{template};
 
   my $t = $self->{template_engine_object};
   $t->process($filename, $self->{params}, $self->{response_object}) || die 'Unable to process template: ', $t->error, $!;
