@@ -1,6 +1,6 @@
 use v5.10;
-use warnings;
 use strict;
+use warnings;
 
 package PlackX::Framework::Router::Engine;
 use parent 'Router::Boom';
