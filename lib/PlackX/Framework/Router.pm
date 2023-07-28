@@ -85,10 +85,6 @@ sub request_base {
   $bases->{$package} = $base;
 }
 
-sub universal_base {
-  '';
-}
-
 # Class method-style route
 sub add_route {
   my $class  = shift;
