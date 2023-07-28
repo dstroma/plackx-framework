@@ -109,7 +109,7 @@ sub template {
 }
 
 sub render_template {
-  my $self = shfit;
+  my $self = shift;
   return $self->{_template}->render;
 }
 
