@@ -4,7 +4,9 @@ use warnings;
 
 package PlackX::Framework::Response;
 use parent 'Plack::Response';
+
 use Digest::MD5 qw(md5_base64);
+use JSON::MaybeXS qw(encode_json decode_json);
 
 sub is_request  { 0 }
 sub is_response { 1 }
@@ -104,6 +106,40 @@ sub template {
   $self->{_template} = shift if @_;
   die "No template module loaded" if !$self->{_template};
   return $self->{_template};
+}
+
+sub render_template {
+  my $self = shfit;
+  return $self->{_template}->render;
+}
+
+sub render_json {
+  my $self = shift;
+  my $data = shift;
+  $self->status(200);
+  $self->content_type('application/json');
+  $self->body(encode_json($data));
+  return $self;
+}
+
+sub render_text {
+  my $self = shift;
+  my $data = shift;
+  $self->status(200);
+  $self->content_type('text/plain');
+  $self->body($data);
+  return $self;
+}
+
+sub error_404 { return _error_page(404, 'Not Found') }
+sub error_500 { return _error_page(500, 'Internal Server Error') }
+sub _error_page {
+  my $self = shift;
+  my $code = shift;
+  my $mess = shift;
+  $self->status($code);
+  $self->body($mess || 'Error');
+  return $self;
 }
 
 1;
