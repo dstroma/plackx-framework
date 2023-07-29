@@ -53,12 +53,15 @@ sub handle_request {
 }
 
 sub route_request {
-  my $class    = shift;
-  my $request  = shift;
-  my $response = shift;
-  my $router   = ($class->app_namespace . '::Router::Engine')->router;
+  my $class     = shift;
+  my $request   = shift;
+  my $response  = shift;
+  my $rt_engine = ($class->app_namespace . '::Router::Engine')->instance;
 
-  if (my $match = $router->match($request)) {
+  my $result = check_request_prefix($class->app_namespace, $request);
+  return $result if $result;
+
+  if (my $match = $rt_engine->match($request)) {
     $request->set_route_parameters($match);
 
     # Execute prefilters
@@ -95,6 +98,20 @@ sub route_request {
 
 #######################################################################
 # Helpers
+
+sub check_request_prefix {
+  my $class   = shift;
+  my $request = shift;
+
+  if ($class->can('uri_prefix') and my $prefix = $class->uri_prefix) {
+    if (substr($request->destination, 0, length $prefix) eq $prefix) {
+      $request->{destination} = substr($request->destination, length $prefix);
+      return;
+    }
+    return not_found_response();
+  }
+  return;
+}
 
 sub execute_filters {
   my $filters  = shift;

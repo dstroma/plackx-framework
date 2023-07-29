@@ -5,11 +5,11 @@ use warnings;
 package PlackX::Framework::Router::Engine;
 use parent 'Router::Boom';
 
-our %routers;
-
-sub router {
+# We use a Hybrid Singleton (one instance per inherited class)
+our %instances;
+sub instance {
   my $class = shift;
-  $routers{$class} ||= $class->new;
+  $instances{$class} ||= $class->new;
 } 
 
 sub match {

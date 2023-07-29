@@ -114,7 +114,7 @@ sub add_filter {
 sub engine {
   my $class        = shift;
   my $engine_class = $class . '::Engine';
-  return $engine_class->router;
+  return $engine_class->instance;
 }
 
 sub _remove_trailing_slash_from_uri {
