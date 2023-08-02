@@ -90,6 +90,11 @@ PlackX::Framework - A thin framework for Plack-based web apps.
 
 =head1 SYNOPSIS
 
+This module is the root module for the PlackX::Framework web application
+framework. It is responsible for loading all of the related modules as well as
+the user's subclasses of these modules, creating empty subclasses of them if
+necessary.
+
 A simple PlackX::Framework application could be all in one .psgi file:
 
     # app.psgi

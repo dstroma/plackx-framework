@@ -66,7 +66,7 @@ sub route_request {
 
     # Execute prefilters
     my $prefilter_result = execute_filters($match->{prefilters}, $request, $response);
-    return finalized_response($prefilter_result) if $prefilter_result;
+    return finalized_response($prefilter_result) if $prefilter_result and is_valid_response($prefilter_result);
 
     # Execute main action
     my $result = $match->{action}->($request, $response);
@@ -78,13 +78,16 @@ sub route_request {
 
     # Execute postfilters
     my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
-    return finalized_response($postfilter_result) if $postfilter_result;
+    return finalized_response($postfilter_result) if $postfilter_result and is_valid_response($postfilter_result);
 
     # Clean up
     if ($response->post_response_callbacks and ref $response->post_response_callbacks and scalar @{  $response->post_response_callbacks  }) {
       if ($request->env->{'psgix.cleanup'}) {
+        # If the server supports cleanup handlers, add to list to be executed after the response is served
         push @{  $request->env->{'psgix.cleanup.handlers'}  }, @{  $response->post_response_callbacks  };
       } else {
+        # If the server does not support cleanup handlers, execute them immediately
+        # TODO-Check if the server supports streaming response, stream it, then execute them? And/or use a defer block.
         $_->($request->env) for @{  $response->post_response_callbacks  };
       }
     }

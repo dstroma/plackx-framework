@@ -4,10 +4,10 @@ use warnings;
 
 package PlackX::Framework::Router;
 
+our @EXPORT  = qw(request request_base filter);
 our $filters = {};
 our $bases   = {};
 our $routers = {};
-our @EXPORT  = qw(request request_base filter);
 
 sub import {
   my $class     = shift;
@@ -15,14 +15,17 @@ sub import {
   my @wants     = @_;
 
   # Trap errors
-  die "You must import from your app's sublcass of PlackX::Framework::Router, not directly"
+  die "You must import from your app's subclass of PlackX::Framework::Router, not directly"
     if $class eq __PACKAGE__;
 
   # Remember which controller is using which router engine object
-  $routers->{$export_to} = $class->engine; # this might be a bug?
+  # example: 
+  #   `use MyApp::Router;` will cause the below line to become
+  #   `$routers->{MyApp::Controller::Login} = MyApp::Router->engine`
+  $routers->{$export_to} = $class->engine;
 
   # Determine what to export
-  my @exports = @EXPORT;
+  my @exports;
   if (@wants > 0) {
     my %exports = map { $_ => 1 } @EXPORT;
     for my $want (@wants) {
@@ -38,6 +41,7 @@ sub import {
   }
 }
 
+# DSL-style filter route
 sub filter {
   my $when      = shift;
   my $action    = shift;
@@ -59,6 +63,7 @@ sub filter {
   return;
 }
 
+# DSL-style request route
 sub request {
   my $routespec = shift;
   my $action    = shift;
@@ -78,6 +83,7 @@ sub request {
   return;
 }
 
+# DSL-style request base URI
 sub request_base {
   my ($package) = caller;
   my $base      = shift;
@@ -86,6 +92,7 @@ sub request_base {
 }
 
 # Class method-style route
+# Currently does not support base or filters
 sub add_route {
   my $class  = shift;
   my $spec   = shift;
@@ -108,7 +115,7 @@ sub add_route {
 
 # Class method-style filter
 sub add_filter {
-  die 'Not yet implemented';
+  die 'Not implemented. For request filtering please use the DSL API.';
 }
 
 sub engine {
