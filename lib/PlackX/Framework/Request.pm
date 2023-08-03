@@ -15,7 +15,7 @@ sub is_get       { uc shift->method eq 'GET'    }
 sub is_post      { uc shift->method eq 'POST'   }
 sub is_put       { uc shift->method eq 'PUT'    }
 sub is_delete    { uc shift->method eq 'DELETE' }
-sub is_ajax      { uc shift->header('X-Requested-With') eq 'XMLHTTPREQUEST' }
+sub is_ajax      { uc (shift->header('X-Requested-With') || '') eq 'XMLHTTPREQUEST' }
 
 sub urix {
   my $self = shift;
