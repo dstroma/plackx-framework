@@ -25,7 +25,7 @@ sub import {
   $routers->{$export_to} = $class->engine;
 
   # Determine what to export
-  my @exports;
+  my @exports = @EXPORT;
   if (@wants > 0) {
     my %exports = map { $_ => 1 } @EXPORT;
     for my $want (@wants) {

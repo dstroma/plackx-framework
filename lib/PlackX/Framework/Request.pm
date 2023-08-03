@@ -17,14 +17,13 @@ sub is_put       { uc shift->method eq 'PUT'    }
 sub is_delete    { uc shift->method eq 'DELETE' }
 sub is_ajax      { uc shift->header('X-Requested-With') eq 'XMLHTTPREQUEST' }
 
-# Override Plack::Request->uri so we can use our subclass of URI::Fast
-sub uri {
+sub urix {
   my $self = shift;
 
   # The URI module is optional, so only load it on demand
-  require PlackX::Framework::URI;
-  my $uri_class = $self->app_class . '::URI';
-  $uri_class = 'PlackX::Framework::URI' unless try { require $uri_class; 1 };
+  require PlackX::Framework::URIx;
+  my $urix_class = $self->app_class . '::URIx';
+  $urix_class = 'PlackX::Framework::URIx' unless try { require $urix_class; 1 };
 
   # Copied from uri method of Plack::Request
   my $base = $self->_uri_base;
@@ -35,7 +34,7 @@ sub uri {
   $base =~ s!/$!! if $path =~ m!^/!;
   # End copy
  
-  return $uri_class->new($base . $path)->normalize;
+  return $urix_class->new($base . $path)->normalize;
 }
 
 sub destination {

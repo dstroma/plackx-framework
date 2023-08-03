@@ -1,15 +1,19 @@
 use strict;
 use warnings;
 
-package PlackX::Framework::URI;
-use parent 'URI::Fast';
-use URI::Fast ();
+package PlackX::Framework::URIx;
 
-sub new {
-  my $class = shift;
-  my $self = $class->SUPER::new(@_);
-  bless $self, $class;
-  return $self;
+# Since this module is optional, we try to load it during compile-time and
+# fail silently if it doesn't load, replacing new() with a subroutine that
+# will raise a fatal error.
+BEGIN {
+  our $URI_Fast_loaded = eval { require URI::Fast };
+  if ($URI_Fast_loaded) {
+    eval "use parent 'URI::Fast'";
+  } else {
+    no strict 'refs';
+    *{'new'} = sub { die 'URI::Fast is required for ' . __PACKAGE__; };
+  }
 }
 
 sub query_set {
@@ -98,14 +102,17 @@ __END__
 
 =head1 NAME
 
-PlackX::Framework::URI - Subclass of URI::Fast with extra query string methods
+PlackX::Framework::URIx - Subclass of URI::Fast with extra query string methods
 
 
 =head1 DESCRIPTION
 
-PlackX::Framework::URI is part of PlackX::Framework. This module is a subclass
+PlackX::Framework::URIx is part of PlackX::Framework. This module is a subclass
 of URI::Fast with extra features for manipulating query strings, namely setting,
 adding, or deleting parameters.
+
+If URI::Fast is not installed, this module can still be loaded, but any calls
+to new() will die.
 
 
 =head 2 Rationale
@@ -115,13 +122,13 @@ features, that module was designed to replicate the CGI.pm interface. This one
 does not. Method names are shorter and have been chosen to avoid conflicting
 with the methods offered by URI::QueryParam. The other distinguishing
 characteristic is that all of the added methods return the object so that method
-class may be chained.
+calls may be chained.
 
 
 =head2 Methods
 
 The following methods are those in addition to the ones contained in the
-inherited URI class.
+URI::Fast module.
 
 
 =head3 query_set(@pairs)
@@ -166,8 +173,10 @@ Deletes any parameters in the query string that match or don't match
 
 None.
 
+
 =head1 SEE ALSO
 
+URI::Fast
 URI
 URI::QueryParam
 Rose::URI

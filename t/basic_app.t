@@ -37,7 +37,7 @@ sub test2 {
 
 sub test3 {
 	# See if subclasses are automatically created
-	foreach my $auto_class (qw(App Request Response Router Router::Engine)) {
+	foreach my $auto_class (qw(Handler Request Response Router Router::Engine)) {
 		my $dummy_obj = bless [], $test_app_namespace . '::' . $auto_class;
 		my $parent    = 'PlackX::Framework::' . $auto_class;
 		ok($dummy_obj->isa($parent) => "Assert auto-created class $test_app_namespace is subclass of $parent");
@@ -66,7 +66,7 @@ sub test4 {
 
 sub test5 {
 	# Make sure ->to_app returns a code reference
-	my $code = ($test_app_namespace . '::App')->to_app;
+	my $code = ($test_app_namespace . '::Handler')->to_app;
 	ok(
 		ref $code eq 'CODE',
 		"$test_app_namespace\::App->to_app returns a coderef"
@@ -75,7 +75,7 @@ sub test5 {
 
 sub test6 {
 	# Get a response from /
-	my $code = ($test_app_namespace . '::App')->to_app;
+	my $code = ($test_app_namespace . '::Handler')->to_app;
 	my $resp = $code->(test_env());
 	ok(
 		(ref $resp eq 'ARRAY' and $resp->[2][0] eq "<html>test from process $$</html>"),

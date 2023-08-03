@@ -89,13 +89,14 @@ package My::Example::App::Controller {
 	# Different route
 	request '/login' => sub ($request, $response) {
 		my $message = $request->stash->{'message'} || 'Enter your credentials below.';
+		my $want_method = $request->param('method') // 'post';
 		my $body = qq {
 			<html>
 				<head><title>$app_name: Log In</title>$style</head>
 				<body>
 					<h1>$app_name: Log In</h1>
 					<p>$message</p>
-					<form method="post" action="/login/submit">
+					<form method="$want_method" action="/login/submit">
 						<label>Username: <input type="text" name="username"></label>
 						<label>Password: <input type="text" name="password"></label>
 						<input type="submit" value="Log In">
@@ -130,17 +131,22 @@ package My::Example::App::Controller {
 		return $response;
 	};
 
-	# Demonstrate string action instead of coderef and a callback
-	request '/help' => 'help';
-	sub help ($request, $response) {
-		$response->print('Please call us at 867-5309 for help!!!');
-		$response->add_post_response_callback(sub ($env) {
-			warn "help - Cleanup callback! Sleeping for 5 seconds.\n";
-			warn( ($env->{'psgix.cleanup'} ? '(server supports cleanup handler)' : '(cleanup NOT supported)') . "\n");
-			sleep 5;
-		});
-		return $response;
-	}
+	request { get => '/login/submit' } => sub ($request, $response) {
+		my $uri_censored = $request->urix;
+		$uri_censored->query_set(password => 'XXXXX');
+		my $body = qq {
+			<html>
+				<head><title>GET form</title>$style</head>
+				<body>
+					<h1>$app_name: Login Failed</h1>
+					<p>You cannot login with a GET request. The URL you tried to access is (the password is censored):</p>
+					<p style="margin:0.2em 1em; font-style:italic">$uri_censored</p>
+				</body>
+			</html>
+		};
+		$response->print($body);
+		return $response;	
+	};
 
 	# Demonstrate a callback (cleanup handler)
 	request '/callback' => sub ($request, $response) {

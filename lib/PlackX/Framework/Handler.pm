@@ -2,7 +2,7 @@ use v5.10;
 use strict;
 use warnings;
 
-package PlackX::Framework::App;
+package PlackX::Framework::Handler;
 use Scalar::Util qw(blessed);
 use Module::Loaded ();
 
@@ -145,7 +145,7 @@ sub finalized_response {
 
 sub app_namespace {
   my $class = shift;
-  $class =~ m/^(.+)\:\:App$/;
+  die 'Unable to determine app namespace' unless $class =~ m/^(.+)\:\:Handler$/;
   my $app_namespace = $1;
   return $app_namespace;
 }

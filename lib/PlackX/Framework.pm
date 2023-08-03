@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 package PlackX::Framework;
-use PlackX::Framework::App ();
+use PlackX::Framework::Handler ();
 use PlackX::Framework::Request ();
 use PlackX::Framework::Response ();
 use PlackX::Framework::Router ();
@@ -16,13 +16,13 @@ use Module::Loaded ();
 
 sub modules {
   return (
-    'App'              => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Request'          => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Response'         => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Router'           => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Router::Engine'   => { required => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Template'         => { auto_load_subclass => 1, auto_create_subclass => 1 },
-    'URI'              => { auto_load_subclass => 1 },
+    'Handler'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+    'Request'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+    'Response'         => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+    'Router'           => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+    'Router::Engine'   => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+    'URIx'             => { autoload => 1, auto_load_subclass => 1,                           },
+    'Template'         => {                auto_load_subclass => 1, auto_create_subclass => 1 },
   );
 }
 
@@ -57,9 +57,9 @@ sub export_app_sub {
   my $destination_package = shift;
   no strict 'refs';
   *{$destination_package . '::app'} = sub {
-    my $class     = shift;
-    my $app_class = $class . '::App';
-    $app_class->to_app;
+    my $class         = shift;
+    my $handler_class = $class . '::Handler';
+    $handler_class->to_app;
   }
 }
 
@@ -122,13 +122,13 @@ your own risk.
 PlackX::Framework consists of the following modules:
 
 PlackX::Framework
-PlackX::Framework::App
-PlackX::Framework::Request;
-PlackX::Framework::Response;
-PlackX::Framework::Router;
-PlackX::Framework::Router::Engine;
-PlackX::Framework::Template;
-PlackX::Framework::URI;
+PlackX::Framework::Handler
+PlackX::Framework::Request
+PlackX::Framework::Response
+PlackX::Framework::Router
+PlackX::Framework::Router::Engine
+PlackX::Framework::Template
+PlackX::Framework::URI
 
 The statement "use PlackX::Framework" will automatically find and load all of
 the required modules. Then it will look for subclasses of the modules listed 
@@ -140,7 +140,7 @@ for any that do not exist. The following example
         # ...app logic here...
     }
 
-will attempt to load MyProject::App, MyProject::Request, MyProject::Response
+will attempt to load MyProject::Handler, MyProject::Request, MyProject::Response
 and so on, or create them if they do not exist.
 
 The PlackX::Framework::Request and PlackX::Framework::Response modules are
@@ -158,7 +158,7 @@ The PlackX::Framework::Template module can automatically load and set up
 Template Toolkit, offering several convenience methods. If you desire to use
 a different templating system from TT, you may override as many methods as
 necessary in your subclass. A new instance of this class is generated for
-each request by the app() method of PlackX::Framework::App.
+each request by the app() method of PlackX::Framework::Handler.
 
 
 =head2 Why Another Framework?
