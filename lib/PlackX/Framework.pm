@@ -1,4 +1,4 @@
-use v5.10;
+use 5.10.0;
 use strict;
 use warnings;
 
@@ -12,7 +12,7 @@ use Module::Loaded ();
 
 # Not everyone will need these modules, do not load by default
 #use PlackX::Framework::Template ();
-#use PlackX::Framework::URI (); 
+#use PlackX::Framework::URIx (); 
 
 sub modules {
   return (
@@ -128,7 +128,7 @@ PlackX::Framework::Response
 PlackX::Framework::Router
 PlackX::Framework::Router::Engine
 PlackX::Framework::Template
-PlackX::Framework::URI
+PlackX::Framework::URIX
 
 The statement "use PlackX::Framework" will automatically find and load all of
 the required modules. Then it will look for subclasses of the modules listed 
@@ -147,7 +147,7 @@ The PlackX::Framework::Request and PlackX::Framework::Response modules are
 subclasses of Plack::Request and Plack::Response sprinkled with additional
 features. See the documentation of those modules for details.
 
-The PlackX::Framework::URI module is a subclass of URI::Fast, with some
+The PlackX::Framework::URIx module is a subclass of URI::Fast, with some
 syntactic sugar.
 
 The PlackX::Framework::Router::Engine is a subclass of Router::Boom with some

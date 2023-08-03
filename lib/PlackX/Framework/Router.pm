@@ -1,4 +1,4 @@
-use v5.10;
+use 5.10.0;
 use strict;
 use warnings;
 
@@ -7,7 +7,7 @@ package PlackX::Framework::Router;
 our @EXPORT  = qw(request request_base filter);
 our $filters = {};
 our $bases   = {};
-our $routers = {};
+our $engines = {};
 
 sub import {
   my $class     = shift;
@@ -21,8 +21,8 @@ sub import {
   # Remember which controller is using which router engine object
   # example: 
   #   `use MyApp::Router;` will cause the below line to become
-  #   `$routers->{MyApp::Controller::Login} = MyApp::Router->engine`
-  $routers->{$export_to} = $class->engine;
+  #   `$engines->{MyApp::Controller::Login} = MyApp::Router->engine`
+  $engines->{$export_to} = $class->engine;
 
   # Determine what to export
   my @exports = @EXPORT;
@@ -68,11 +68,11 @@ sub request {
   my $routespec = shift;
   my $action    = shift;
   my ($package) = caller;
-  my $router    = $routers->{$package};
+  my $engine    = $engines->{$package};
 
   $action = _coerce_action_to_subref($action, $package);
 
-  $router->add_route(
+  $engine->add_route(
      routespec   => $routespec,
      base        => $bases->{$package},
      prefilters  => _get_filters($package, 'before'),
@@ -99,12 +99,12 @@ sub add_route {
   my $action = shift;
   my ($package) = caller;
 
-  $routers->{$class} ||= $class->engine;
-  my $router = $routers->{$class};
+  $engines->{$class} ||= $class->engine;
+  my $engine = $engines->{$class};
 
   $action = _coerce_action_to_subref($action, $package);
 
-  $router->add_route(
+  $engine->add_route(
      routespec   => $spec,
      #base        => $bases->{$package},
      #prefilters  => _get_filters($package, 'before'),
