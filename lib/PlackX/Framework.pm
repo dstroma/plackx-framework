@@ -75,7 +75,7 @@ sub generate_subclass {
   eval qq{
     package $new_class;
     use parent '$base_class';
-    Module::Loaded::mark_as_loaded($new_class);
+    Module::Loaded::mark_as_loaded('$new_class');
     1;
   } or die $@;
 }
