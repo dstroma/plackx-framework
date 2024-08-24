@@ -220,6 +220,17 @@ Generally, modifying the behavior of the framework itself will involve
 subclassing, while using the framework will not.
 
 
+=head2 Configuration
+
+In your application's root namespace, you can set the base URL for requests
+by defining a uri_prefix subroutine.
+
+    package MyApp {
+      use PlackX::Framework;
+      sub uri_prefix { '/app' }
+    }
+
+
 =head2 Routes, Requests, and Request Filtering
 
 See PlackX::Framework::Router for documentation on request routing and
