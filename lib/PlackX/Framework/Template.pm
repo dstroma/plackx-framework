@@ -21,7 +21,7 @@ PlackX::Framework::Template->new($response);
 
 sub import {
   my $class   = shift;
-  my $options = shift if ref $_[0];
+  my $options = shift // {};
 
   # Trap errors
   die "You must import from your app's sublcass of PlackX::Framework::Template, not directly"
