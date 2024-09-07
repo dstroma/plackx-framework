@@ -56,6 +56,12 @@ sub no_cache {
   return $self->{_no_cache};
 }
 
+sub redirect {
+  my $self = shift;
+  $self->SUPER::redirect(@_);
+  return $self;
+}
+
 sub print {
   # Adds a line or lines to the body string
   my $self = shift;
