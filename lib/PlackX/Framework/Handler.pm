@@ -70,6 +70,10 @@ sub route_request {
 
     # Execute main action
     my $result = $match->{action}->($request, $response);
+    unless ($result and ref $result) {
+      warn "PlackX::Framework - Invalid result\n";
+      return $class->not_found_response;
+    }
 
     # Check if the "response" is actually another "request" (despite the variable name)
     return $class->handle_request($result) if $result->is_request;
