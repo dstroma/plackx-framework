@@ -1,86 +1,79 @@
-use 5.10.0;
-use strict;
-use warnings;
+use v5.40;
+package PlackX::Framework {
+  use PlackX::Framework::Handler ();
+  use PlackX::Framework::Request ();
+  use PlackX::Framework::Response ();
+  use PlackX::Framework::Router ();
+  use PlackX::Framework::Router::Engine ();
+  use Module::Loaded ();
 
-package PlackX::Framework;
-use PlackX::Framework::Handler ();
-use PlackX::Framework::Request ();
-use PlackX::Framework::Response ();
-use PlackX::Framework::Router ();
-use PlackX::Framework::Router::Engine ();
-use Module::Loaded ();
+  # Not everyone will need these modules, do not load by default
+  #use PlackX::Framework::Template ();
+  #use PlackX::Framework::URIx ();
 
-# Not everyone will need these modules, do not load by default
-#use PlackX::Framework::Template ();
-#use PlackX::Framework::URIx (); 
+  sub modules {
+    return (
+      'Handler'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+      'Request'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+      'Response'         => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+      'Router'           => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+      'Router::Engine'   => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
+      'URIx'             => { autoload => 1, auto_load_subclass => 1,                           },
+      'Template'         => {                auto_load_subclass => 1, auto_create_subclass => 1 },
+    );
+  }
 
-sub modules {
-  return (
-    'Handler'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Request'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Response'         => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Router'           => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Router::Engine'   => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'URIx'             => { autoload => 1, auto_load_subclass => 1,                           },
-    'Template'         => {                auto_load_subclass => 1, auto_create_subclass => 1 },
-  );
-}
+  sub import {
+    my $caller = caller(0);  # use this module will load or create subclasses in caller's namespace
 
-sub import {
-  my $caller = caller(0);  # use this module will load or create subclasses in caller's namespace
+    # Load the application's subclassed versions of PlackX::Framework::*
+    my %modules = modules();
+    foreach my $module (keys %modules) {
+      my %loaded = ();
 
-  # Load the application's subclassed versions of PlackX::Framework::*
-  my %modules = modules();
-  foreach my $module (keys %modules) {
-    my %loaded = ();
+      # Attempt to load the user's subclass of the respective module
+      if ($modules{$module}->{auto_load_subclass}) {
+        $loaded{$module} = load_subclass($caller, $module);
+      }
 
-    # Attempt to load the user's subclass of the respective module
-    if ($modules{$module}->{auto_load_subclass}) {
-      $loaded{$module} = load_subclass($caller, $module);
+      # Create it
+      if (!$loaded{$module} and $modules{$module}->{auto_create_subclass}) {
+        generate_subclass($caller . '::' . $module => "PlackX::Framework::$module");
+      }
+
+      # Verify required modules are loaded
+      if ($modules{$module}->{required}) {
+        die "Could not load or create required module $_" unless Module::Loaded::is_loaded($caller . '::' . $module);
+      }
     }
 
-    # Create it
-    if (!$loaded{$module} and $modules{$module}->{auto_create_subclass}) {
-      generate_subclass($caller . '::' . $module => "PlackX::Framework::$module");
-    }
+    export_app_sub($caller);
+  }
 
-    # Verify required modules are loaded
-    if ($modules{$module}->{required}) {
-      die "Could not load or create required module $_" unless Module::Loaded::is_loaded($caller . '::' . $module);
+  sub export_app_sub ($destination_package) {
+    no strict 'refs';
+    *{$destination_package . '::app'} = sub {
+      my $class         = shift;
+      my $handler_class = $class . '::Handler';
+      $handler_class->to_app;
     }
   }
 
-  export_app_sub($caller);
-}
-
-sub export_app_sub {
-  my $destination_package = shift;
-  no strict 'refs';
-  *{$destination_package . '::app'} = sub {
-    my $class         = shift;
-    my $handler_class = $class . '::Handler';
-    $handler_class->to_app;
+  sub load_subclass ($class, $module) {
+    my $success = eval "require $class" . '::' . "$module; 1;";
+    return $success;
   }
-}
 
-sub load_subclass {
-  my $class   = shift;
-  my $module  = shift;
-  my $success = eval "require $class" . '::' . "$module; 1;";
-  return $success;
-}
+  sub generate_subclass ($new_class, $base_class) {
+    eval qq{
+      package $new_class;
+      use parent '$base_class';
+      Module::Loaded::mark_as_loaded('$new_class');
+      1;
+    } or die $@;
+  }
 
-sub generate_subclass {
-  my ($new_class, $base_class) = @_;
-  eval qq{
-    package $new_class;
-    use parent '$base_class';
-    Module::Loaded::mark_as_loaded('$new_class');
-    1;
-  } or die $@;
 }
-
-1;
 __END__
 
 =head1 NAME

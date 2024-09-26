@@ -1,181 +1,149 @@
-use 5.10.0;
-use strict;
-use warnings;
+use v5.40;
+package PlackX::Framework::Handler {
+  use Scalar::Util qw(blessed);
+  use Module::Loaded ();
 
-package PlackX::Framework::Handler;
-use Scalar::Util qw(blessed);
-use Module::Loaded ();
+  # Public class methods
+  sub to_app ($class)    { return sub { $class->handle_request(shift) } }
+  sub not_found_response { [404, [], ['Not Found']]              }
+  sub error_response     { [500, [], ['Internal Server Error']]  }
 
-# Public class methods
-sub to_app {
-  my $class = shift;
-  return sub {
-    $class->handle_request(shift)
-  };
-}
+  sub handle_request ($class, $env_or_req, $maybe_resp = undef) {
+    my $app_namespace = $class->app_namespace;
 
-sub not_found_response { [404, [], ['Not Found']]              }
-sub error_response     { [500, [], ['Internal Server Error']]  }
+    # Get or create request and response objects
+    my $env      = $class->env_or_req_to_env($env_or_req);
+    my $request  = $class->env_or_req_to_req($env_or_req);
+    my $response = $maybe_resp || ($app_namespace . '::Response')->new;
 
-sub handle_request {
-  my $class         = shift;
-  my $env_or_req    = shift;
-  my $maybe_resp    = shift;
-  my $app_namespace = $class->app_namespace;
+    $request->set_app_class($class);
+    $response->set_app_class($class);
 
-  # Get or create request and response objects
-  my $env      = $class->env_or_req_to_env($env_or_req);
-  my $request  = $class->env_or_req_to_req($env_or_req);
-  my $response = $maybe_resp || ($app_namespace . '::Response')->new;
+    # Set up stash
+    my $stash = ($request->stash or $response->stash or {});
+    $request->set_stash($stash);
+    $response->set_stash($stash);
 
-  $request->set_app_class($class);
-  $response->set_app_class($class);
-
-  # Set up stash
-  my $stash = ($request->stash or $response->stash or {});
-  $request->set_stash($stash);
-  $response->set_stash($stash);
-
-  # Maybe set up Templating, if loaded
-  if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
-    eval {
-      my $template = ($app_namespace . '::Template')->new($response);
-      $response->template($template);
-    };
-  }
-
-  # Clear flash if set, set response defaults
-  $response->flash(undef);
-  $response->status(200);
-  $response->content_type('text/html');
-
-  return $class->route_request($request, $response);
-}
-
-sub route_request {
-  my $class     = shift;
-  my $request   = shift;
-  my $response  = shift;
-  my $rt_engine = ($class->app_namespace . '::Router::Engine')->instance;
-
-  my $result = check_request_prefix($class->app_namespace, $request);
-  return $result if $result;
-
-  if (my $match = $rt_engine->match($request)) {
-    $request->set_route_parameters($match);
-
-    # Execute prefilters
-    my $prefilter_result = execute_filters($match->{prefilters}, $request, $response);
-    return finalized_response($prefilter_result) if $prefilter_result and is_valid_response($prefilter_result);
-
-    # Execute main action
-    my $result = $match->{action}->($request, $response);
-    unless ($result and ref $result) {
-      warn "PlackX::Framework - Invalid result\n";
-      return $class->not_found_response;
+    # Maybe set up Templating, if loaded
+    if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
+      eval {
+        my $template = ($app_namespace . '::Template')->new($response);
+        $template->set(REQUEST => $request, RESPONSE => $response);
+        $response->template($template);
+      };
     }
 
-    # Check if the "response" is actually another "request" (despite the variable name)
-    return $class->handle_request($result) if $result->is_request;
-    return $class->error_response unless $result->is_response;
-    $response = $result;
+    # Clear flash if set, set response defaults
+    $response->flash(undef);
+    $response->status(200);
+    $response->content_type('text/html');
 
-    # Execute postfilters
-    my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
-    return finalized_response($postfilter_result) if $postfilter_result and is_valid_response($postfilter_result);
+    return $class->route_request($request, $response);
+  }
 
-    # Clean up
-    if ($response->post_response_callbacks and ref $response->post_response_callbacks and scalar @{  $response->post_response_callbacks  }) {
-      if ($request->env->{'psgix.cleanup'}) {
-        # If the server supports cleanup handlers, add to list to be executed after the response is served
-        push @{  $request->env->{'psgix.cleanup.handlers'}  }, @{  $response->post_response_callbacks  };
-      } else {
-        # If the server does not support cleanup handlers, execute them immediately
-        # TODO-Check if the server supports streaming response, stream it, then execute them? And/or use a defer block.
-        $_->($request->env) for @{  $response->post_response_callbacks  };
+  sub route_request ($class, $request, $response) {
+    my $result = check_request_prefix($class->app_namespace, $request);
+    return $result if $result;
+
+    my $rt_engine = ($class->app_namespace . '::Router::Engine')->instance;
+    if (my $match = $rt_engine->match($request)) {
+      $request->set_route_parameters($match);
+
+      # Execute prefilters
+      my $prefilter_result = execute_filters($match->{prefilters}, $request, $response);
+      return finalized_response($prefilter_result) if $prefilter_result and is_valid_response($prefilter_result);
+
+      # Execute main action
+      my $result = $match->{action}->($request, $response);
+      unless ($result and ref $result) {
+        warn "PlackX::Framework - Invalid result\n";
+        return $class->error_response;
       }
+
+      # Check if the "response" is actually another "request" (despite the variable name)
+      return $class->handle_request($result) if $result->is_request;
+      return $class->error_response unless $result->is_response;
+      $response = $result;
+
+      # Execute postfilters
+      my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
+      return finalized_response($postfilter_result) if $postfilter_result and is_valid_response($postfilter_result);
+
+      # Clean up
+      if ($response->post_response_callbacks and ref $response->post_response_callbacks and scalar @{  $response->post_response_callbacks  }) {
+        if ($request->env->{'psgix.cleanup'}) {
+          # If the server supports cleanup handlers, add to list to be executed after the response is served
+          push @{  $request->env->{'psgix.cleanup.handlers'}  }, @{  $response->post_response_callbacks  };
+        } else {
+          # If the server does not support cleanup handlers, execute them immediately
+          # TODO-Check if the server supports streaming response, stream it, then execute them? And/or use a defer block.
+          $_->($request->env) for @{  $response->post_response_callbacks  };
+        }
+      }
+
+      # Finish
+      return finalized_response($response) if is_valid_response($response);
     }
 
-    # Finish
-    return finalized_response($response) if is_valid_response($response);
+    return $class->not_found_response;
   }
 
-  return $class->not_found_response;
-}
+  #######################################################################
+  # Helpers
 
-#######################################################################
-# Helpers
-
-sub check_request_prefix {
-  my $class   = shift;
-  my $request = shift;
-
-  if ($class->can('uri_prefix') and my $prefix = $class->uri_prefix) {
-    if (substr($request->destination, 0, length $prefix) eq $prefix) {
-      $request->{destination} = substr($request->destination, length $prefix);
-      return;
+  sub check_request_prefix ($class, $request) {
+    if ($class->can('uri_prefix') and my $prefix = $class->uri_prefix) {
+      if (substr($request->destination, 0, length $prefix) eq $prefix) {
+        $request->{destination} = substr($request->destination, length $prefix);
+        return;
+      }
+      return not_found_response();
     }
-    return not_found_response();
-  }
-  return;
-}
-
-sub execute_filters {
-  my $filters  = shift;
-  my $request  = shift;
-  my $response = shift;
-  return unless $filters and ref $filters eq 'ARRAY';
-
-  foreach my $filter (@$filters) {
-    my $response = $filter->{action}->($request, $response, @{$filter->{params}});
-    return $response if $response and is_valid_response($response);
+    return;
   }
 
-  return;
-}
-
-sub is_valid_response {
-  my $response = pop;
-  return undef unless defined $response and ref $response;      # Bad  - must be defined and be a ref
-  return 1 if ref $response eq 'ARRAY' and @$response == 3;     # Good - PSGI raw response arrayref
-  return 1 if blessed $response and $response->can('finalize'); # Good - Plack-like response object with finalize() method
-  return undef;
-}
-
-sub finalized_response {
-  my $response = pop;
-  return ref $response eq 'ARRAY' ? $response : $response->finalize;
-}
-
-sub app_namespace {
-  my $class = shift;
-  die 'Unable to determine app namespace' unless $class =~ m/^(.+)\:\:Handler$/;
-  my $app_namespace = $1;
-  return $app_namespace;
-}
-
-sub env_or_req_to_req {
-  my $class         = shift;
-  my $env_or_req    = shift;
-
-  if (ref $env_or_req and ref $env_or_req eq 'HASH') {
-    return ($class->app_namespace . '::Request')->new($env_or_req);
-  } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
-    return $env_or_req;
+  sub execute_filters ($filters, $request, $response) {
+    return unless $filters and ref $filters eq 'ARRAY';
+    foreach my $filter (@$filters) {
+      my $response = $filter->{action}->($request, $response, @{$filter->{params}});
+      return $response if $response and is_valid_response($response);
+    }
+    return;
   }
-  die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
-}
 
-sub env_or_req_to_env {
-  my $class         = shift;
-  my $env_or_req    = shift;
-
-  if (ref $env_or_req and ref $env_or_req eq 'HASH') {
-    return $env_or_req;
-  } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
-    return $env_or_req->env;
+  sub is_valid_response {
+    my $response = pop;
+    return undef unless defined $response and ref $response;      # Bad  - must be defined and be a ref
+    return 1 if ref $response eq 'ARRAY' and @$response == 3;     # Good - PSGI raw response arrayref
+    return 1 if blessed $response and $response->can('finalize'); # Good - Plack-like response object with finalize() method
+    return undef;
   }
-  die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
-}
 
-1;
+  sub finalized_response {
+    my $response = pop;
+    return ref $response eq 'ARRAY' ? $response : $response->finalize;
+  }
+
+  sub app_namespace ($class) {
+    die 'Unable to determine app namespace' unless $class =~ m/^(.+)\:\:Handler$/;
+    return $1;
+  }
+
+  sub env_or_req_to_req ($class, $env_or_req) {
+    if (ref $env_or_req and ref $env_or_req eq 'HASH') {
+      return ($class->app_namespace . '::Request')->new($env_or_req);
+    } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
+      return $env_or_req;
+    }
+    die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
+  }
+
+  sub env_or_req_to_env ($class, $env_or_req) {
+    if (ref $env_or_req and ref $env_or_req eq 'HASH') {
+      return $env_or_req;
+    } elsif (blessed $env_or_req and $env_or_req->isa('PlackX::Framework::Request')) {
+      return $env_or_req->env;
+    }
+    die 'Neither a PSGI-type HASH reference nor a PlackX::Framework::Request object.';
+  }
+}
