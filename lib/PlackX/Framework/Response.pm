@@ -1,152 +1,56 @@
-use v5.10;
-use strict;
-use warnings;
+use v5.40;
+package PlackX::Framework::Response {
+  use parent 'Plack::Response';
+  use JSON::MaybeXS qw(encode_json decode_json);
+  *flash_cookie_name = \&PlackX::Framework::Request::flash_cookie_name;
 
-package PlackX::Framework::Response;
-use parent 'Plack::Response';
-
-use Digest::MD5 qw(md5_base64);
-use JSON::MaybeXS qw(encode_json decode_json);
-
-sub is_request  { 0 }
-sub is_response { 1 }
-sub continue    { return; }
-sub stop        { $_[0]   }
-
-sub new {
-  my $class = shift;
-  my $self  = $class->SUPER::new(@_);
-
-  $self->{_no_cache}                = 0;
-  $self->{_body}                    = [];
-  $self->{_post_response_callbacks} = [];
-  $self->{_size}                    = 0;
-
-  $self->body($self->{_body});
-  $self->{_size} += length($_) for @{$self->{_body}};
-
-  return bless $self, $class;
-}
-
-sub app_class {
-  my $self = shift;
-  $self->{app_class};
-}
-
-sub set_app_class {
-  my $self = shift;
-  my $new  = shift;
-  $self->{app_class} = $new;
-}
-
-sub no_cache {
-  my $self = shift;
-  if (@_ > 0) {
-    my $setting = shift;
-    if ($setting) {
-      $self->header('Pragma' => 'no-cache');
-      $self->header('Cache-control' => 'no-cache');
-      $self->{_no_cache} = 1;
-    } else {
-      $self->header('Pragma' => undef);
-      $self->header('Cache-control' => undef);
-      $self->{_no_cache} = 0;
-    }
+  sub new ($class, @args) {
+    my $self = $class->SUPER::new(@args);
+    $self->{pxf} = { cleanup_callbacks => [], no_cache = undef };
+    return bless $self, $class;
   }
-  return $self->{_no_cache};
+
+  sub is_request   {   0   }
+  sub is_response  {   1   }
+  sub continue     { undef }
+  sub stop ($self) { $self }
+  sub app_class ($self)                   { $self->{pxf}{app_class}               }
+  sub set_app_class ($self, $value)       { $self->{pxf}{app_class} = $value      }
+  sub stash ($self)                       { $self->{pxf}{stash}                   }
+  sub set_stash ($self, $value)           { $self->{pxf}{stash} = $value          }
+  sub print ($self, @lines)               { push @{$self->body}, @lines; $self    }
+  sub redirect ($self, @args)             { $self->SUPER::redirect(@args);  $self }
+  sub cleanup_callbacks ($self)           { $self->{pxf}{cleanup_callbacks}       }
+  sub add_cleanup_callback ($self, $code) { push @{$self->{pxf}{cleanup_callbacks}}, $code }
+
+  sub no_cache ($self, @args) {
+    if (@args > 0) {
+      my $val = $self->{pxf}{no_cache} = $args[0] ? 'no-cache' : undef;
+      $self->header('Pragma' => $val, 'Cache-control' => $val);
+    }
+    return $self->{pxf}{no_cache};
+  }
+
+  sub flash ($self, $value //= '') {
+    my $max_age = $value ? 120 : -1; # If value is false we delete the cookie
+    $self->cookies->{flash_cookie_name($self)} = { value => $value, path => '/', 'max-age' => $max_age };
+    return $self;
+  }
+
+  sub template ($self, @args) {
+    $self->{pxf}{template} = shift @args if @args;
+    die "No template module loaded" if !$self->{pxf}{template};
+    return $self->{pxf}{template};
+  }
+
+  sub render_template ($self)    { $self->{_template}->render }
+  sub render_json ($self, $data) { $self->render_list(200, 'application/json', encode_json($data)) }
+  sub render_text ($self, $text) { $self->render_list(200, 'text/plain',       $text             ) }
+
+  sub render_list ($self, $status, $content_type, $body) {
+    $self->status($status);
+    $self->content_type($content_type);
+    $self->body($body);
+    return $self;
+  }
 }
-
-sub redirect {
-  my $self = shift;
-  $self->SUPER::redirect(@_);
-  return $self;
-}
-
-sub print {
-  # Adds a line or lines to the body string
-  my $self = shift;
-  $self->{_size} ||= 0;
-  $self->{_size}  += (length($_) || 0) for @_;
-  push @{$self->{_body}}, @_;
-  return $self;
-}
-
-sub size {
-  my $self = shift;
-  return $self->{_size};
-}
-
-sub add_post_response_callback {
-  my $self = shift;
-  my $code = shift;
-  push @{$self->{_post_response_callbacks}}, $code;
-}
-
-sub post_response_callbacks {
-  my $self = shift;
-  return $self->{_post_response_callbacks};
-}
-
-sub stash {
-  my $self = shift;
-  return $self->{stash};
-}
-
-sub set_stash {
-  my $self = shift;
-  my $hash = shift;
-  $self->{stash} = $hash;
-}
-
-sub flash {
-  my $self    = shift;
-  my $value   = shift;
-  my $max_age = $value ? 120 : -1; # If value is false we delete the cookie
-  my $cname   = 'flash' . md5_base64($self->app_class);
-  $self->cookies->{$cname} = { value => ($value || ''), path => '/', 'max-age' => $max_age };
-  return $self;
-}
-
-sub template {
-  my $self = shift;
-  $self->{_template} = shift if @_;
-  die "No template module loaded" if !$self->{_template};
-  return $self->{_template};
-}
-
-sub render_template {
-  my $self = shift;
-  return $self->{_template}->render;
-}
-
-sub render_json {
-  my $self = shift;
-  my $data = shift;
-  $self->status(200);
-  $self->content_type('application/json');
-  $self->body(encode_json($data));
-  return $self;
-}
-
-sub render_text {
-  my $self = shift;
-  my $data = shift;
-  $self->status(200);
-  $self->content_type('text/plain');
-  $self->body($data);
-  return $self;
-}
-
-sub error_404 { return _error_page(404, 'Not Found') }
-sub error_500 { return _error_page(500, 'Internal Server Error') }
-sub _error_page {
-  my $self = shift;
-  my $code = shift;
-  my $mess = shift;
-  $self->status($code);
-  $self->body($mess || 'Error');
-  return $self;
-}
-
-1;
-

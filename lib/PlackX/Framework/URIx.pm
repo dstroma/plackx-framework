@@ -1,104 +1,77 @@
-use strict;
-use warnings;
+use v5.40;
+package PlackX::Framework::URIx {
+  # Since this module is optional, we try to load it during compile-time and
+  # fail silently if it doesn't load, replacing new() to raise a fatal error
+  BEGIN {
+    our $URI_Fast_loaded = eval { require URI::Fast };
+    if ($URI_Fast_loaded) {
+      eval "use parent 'URI::Fast'";
+    } else {
+      no strict 'refs';
+      *{'new'} = sub { die 'URI::Fast could not be loaded'; };
+    }
+  }
 
-package PlackX::Framework::URIx;
+  sub query_set ($self, @new) {
+    foreach my ($key, $val) (@new) {
+      $self->param($key => $val);
+    }
+    return $self;
+  }
 
-# Since this module is optional, we try to load it during compile-time and
-# fail silently if it doesn't load, replacing new() with a subroutine that
-# will raise a fatal error.
-BEGIN {
-  our $URI_Fast_loaded = eval { require URI::Fast };
-  if ($URI_Fast_loaded) {
-    eval "use parent 'URI::Fast'";
-  } else {
-    no strict 'refs';
-    *{'new'} = sub { die 'URI::Fast is required for ' . __PACKAGE__; };
+  sub query_add ($self, @new) {
+    foreach my ($key, $val) (@new) {
+      $self->add_param($key => $val);
+    }
+    return $self;
+  }
+
+  sub query_delete_all ($self) {
+    $self->query_hash({});
+    return $self;
+  }
+
+  sub query_delete ($self, @names) {
+    $self->param($_ => undef) for @names;
+    return $self;
+  }
+
+  sub query_delete_all_except ($self, @names) {
+    my %keep = map { $_ => 1  } @names;
+    foreach my $param ($self->query_keys) {
+      $self->param($param => undef) unless $keep{$param};
+    }
+    return $self;
+  }
+
+  sub query_delete_keys_starting_with ($self, $string) {
+    foreach my $param ($self->query_keys) {
+      $self->param($param => undef) if substr($param, 0, length $string) eq $string;
+    }
+    return $self;
+  }
+
+  sub query_delete_keys_ending_with ($self, $string) {
+    foreach my $param ($self->query_keys) {
+      $self->param($param => undef) if substr($param, 0 - (length $string), length $string) eq $string;
+    }
+    return $self;
+  }
+
+  sub query_delete_keys_matching ($self, $pattern) {
+    foreach my $param ($self->query_keys) {
+      $self->param($param => undef) if $param =~ m/$pattern/;
+    };
+    return $self;
+  }
+
+  sub query_delete_all_except_keys_matching ($self, $pattern) {
+    foreach my $param ($self->query_keys) {
+      $self->param($param => undef) unless $param =~ m/$pattern/;
+    };
+    return $self;
   }
 }
-
-sub query_set {
-  my $self  = shift;
-  my @new   = @_;
-  while (@new) {
-    my $key = shift @new;
-    my $val = shift @new;
-    $self->param($key => $val);
-  }
-  return $self;
-}
-
-sub query_add {
-  my $self  = shift;
-  my @new   = @_;
-  while (@new) {
-    my $key = shift @new;
-    my $val = shift @new;
-    $self->add_param($key => $val);
-  }
-  return $self;
-}
-
-sub query_delete_all {
-  my $self = shift;
-  $self->query_hash({});
-  return $self;
-}
-
-sub query_delete {
-  my $self = shift;
-  die 'No parameters specified' unless @_;
-  $self->param($_ => undef) for @_;
-  return $self;
-}
-
-sub query_delete_all_except {
-  my $self = shift;
-  my %keep = map  { $_ => 1    } @_;
-  foreach my $param ($self->query_keys) {
-    $self->param($param => undef) unless $keep{$param};
-  }
-  return $self;
-}
-
-sub query_delete_keys_starting_with {
-  my $self   = shift;
-  my $string = shift;
-  foreach my $param ($self->query_keys) {
-    $self->param($param => undef) if substr($param, 0, length $string) eq $string;
-  }
-  return $self;
-}
-
-sub query_delete_keys_ending_with {
-  my $self   = shift;
-  my $string = shift;
-  foreach my $param ($self->query_keys) {
-    $self->param($param => undef) if substr($param, 0 - (length $string), length $string) eq $string;
-  }
-  return $self;
-}
-
-sub query_delete_keys_matching {
-  my $self    = shift;
-  my $pattern = shift;
-  foreach my $param ($self->query_keys) {
-    $self->param($param => undef) if $param =~ m/$pattern/;
-  };
-  return $self;
-}
-
-sub query_delete_all_except_keys_matching {
-  my $self    = shift;
-  my $pattern = shift;
-  foreach my $param ($self->query_keys) {
-    $self->param($param => undef) unless $param =~ m/$pattern/;
-  };
-  return $self;
-}
-
-1;
-
-__END__
 
 =head1 NAME
 
@@ -180,5 +153,3 @@ URI::Fast
 URI
 URI::QueryParam
 Rose::URI
-
-

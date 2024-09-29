@@ -1,87 +1,45 @@
-use 5.10.0;
-use strict;
-use warnings;
-
-package PlackX::Framework;
-use PlackX::Framework::Handler ();
-use PlackX::Framework::Request ();
-use PlackX::Framework::Response ();
-use PlackX::Framework::Router ();
-use PlackX::Framework::Router::Engine ();
+use v5.40;
 use Module::Loaded ();
+package PlackX::Framework {
+  sub required_modules { qw(Handler Request Response Router Router::Engine) }
+  sub optional_modules { qw(URIx Template) }
 
-# Not everyone will need these modules, do not load by default
-#use PlackX::Framework::Template ();
-#use PlackX::Framework::URIx (); 
+  # Export ->app and load parent classes and load or create subclasses
+  sub import {
+    my $caller = caller(0);
+    export_app_sub($caller);
 
-sub modules {
-  return (
-    'Handler'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Request'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Response'         => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Router'           => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Router::Engine'   => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'URIx'             => { autoload => 1, auto_load_subclass => 1,                           },
-    'Template'         => {                auto_load_subclass => 1, auto_create_subclass => 1 },
-  );
-}
-
-sub import {
-  my $caller = caller(0);  # use this module will load or create subclasses in caller's namespace
-
-  # Load the application's subclassed versions of PlackX::Framework::*
-  my %modules = modules();
-  foreach my $module (keys %modules) {
-    my %loaded = ();
-
-    # Attempt to load the user's subclass of the respective module
-    if ($modules{$module}->{auto_load_subclass}) {
-      $loaded{$module} = load_subclass($caller, $module);
+    # Load or create required modules, attempt to load optional ones
+    foreach my $module (required_modules()) {
+      eval 'require PlackX::Framework::'.$module or die $@; # Load parent or error
+      my $loaded =  eval 'require '.$caller.'::'.$module;   # Load subclass maybe
+      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module) unless $loaded;
     }
-
-    # Create it
-    if (!$loaded{$module} and $modules{$module}->{auto_create_subclass}) {
-      generate_subclass($caller . '::' . $module => "PlackX::Framework::$module");
-    }
-
-    # Verify required modules are loaded
-    if ($modules{$module}->{required}) {
-      die "Could not load or create required module $_" unless Module::Loaded::is_loaded($caller . '::' . $module);
+    foreach my $module (optional_modules()) {
+      eval 'require '.$caller.'::'.$module; # Load subclass maybe
     }
   }
 
-  export_app_sub($caller);
-}
+  # Helper - Export 'app' class method to the root namespace
+  my sub export_app_sub ($destination_namespace) {
+    no strict 'refs';
+    *{$destination_namespace . '::app'} = sub ($class) {
+      my $handler_class = $class . '::Handler';
+      $handler_class->to_app;
+    }
+  }
 
-sub export_app_sub {
-  my $destination_package = shift;
-  no strict 'refs';
-  *{$destination_package . '::app'} = sub {
-    my $class         = shift;
-    my $handler_class = $class . '::Handler';
-    $handler_class->to_app;
+  # Helper - Create a subclass and mark as loaded
+  my sub generate_subclass ($new_class, $parent_class) {
+    eval qq|
+      package $new_class { use parent '$parent_class' }
+      Module::Loaded::mark_as_loaded('$new_class');
+      1;
+    | or die $@;
   }
 }
 
-sub load_subclass {
-  my $class   = shift;
-  my $module  = shift;
-  my $success = eval "require $class" . '::' . "$module; 1;";
-  return $success;
-}
-
-sub generate_subclass {
-  my ($new_class, $base_class) = @_;
-  eval qq{
-    package $new_class;
-    use parent '$base_class';
-    Module::Loaded::mark_as_loaded('$new_class');
-    1;
-  } or die $@;
-}
-
-1;
-__END__
+=pod
 
 =head1 NAME
 
