@@ -4,22 +4,21 @@ package PlackX::Framework::Response {
   use JSON::MaybeXS qw(encode_json decode_json);
 
   # Simple accessors
-  use Plack::Util::Accessor qw(
-    app_namespace stash cleanup_callbacks template
-  );
+  use Plack::Util::Accessor qw(app_namespace stash cleanup_callbacks template);
 
-  sub is_request        {   0   }
-  sub is_response       {   1   }
-  sub continue          { undef }
-  sub stop ($self)      { $self }
+  sub is_request        { 0          }
+  sub is_response       { 1          }
+  sub continue          { undef      }
+  sub stop              { $_[0] || 1 }
   sub flash_cookie_name { PlackX::Framework::Request::flash_cookie_name(shift) }
-  sub print ($self, @lines)              { push @{$self->body}, @lines; $self    }
-  sub redirect ($self, @args)            { $self->SUPER::redirect(@args);  $self }
-  sub add_cleanup_callback ($self, $sub) { push @{$self->{pxf}{cleanup_callbacks}}, $sub }
+  sub print ($self, @lines)              { push @{$self->{body}}, @lines; $self     }
+  sub redirect ($self, @args)            { $self->SUPER::redirect(@args);  $self    }
+  sub add_cleanup_callback ($self, $sub) { push @{$self->{cleanup_callbacks}}, $sub }
 
   sub new ($class, @args) {
     my $self = $class->SUPER::new(@args);
-    $self->{cleanup_callbacks} = [];
+    $self->{cleanup_callbacks} //= [];
+    $self->{body}              //= [];
     return bless $self, $class;
   }
 

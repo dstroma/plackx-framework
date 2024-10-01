@@ -6,9 +6,9 @@ package PlackX::Framework::Request {
   # Simple accessors
   use Plack::Util::Accessor qw(app_namespace stash route_parameters);
 
-  sub max_reroutes  { 16 }
-  sub is_request    {  1 }
-  sub is_response   {  0 }
+  sub max_reroutes      { 16 }
+  sub is_request        {  1 }
+  sub is_response       {  0 }
   sub is_get    ($self) { uc $self->method eq 'GET'    }
   sub is_post   ($self) { uc $self->method eq 'POST'   }
   sub is_put    ($self) { uc $self->method eq 'PUT'    }
@@ -34,7 +34,7 @@ package PlackX::Framework::Request {
   sub urix ($self) {
     # The URI module is optional, so only load it on demand
     require PlackX::Framework::URIx;
-    my $urix_class = $self->app_class . '::URIx';
+    my $urix_class = $self->app_namespace . '::URIx';
     $urix_class = 'PlackX::Framework::URIx' unless eval "require $urix_class; 1";
     $urix_class->new_from_request($self);
   }
