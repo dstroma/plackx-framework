@@ -22,9 +22,9 @@ package PlackX::Framework::URIx {
     # See RFC 3986 before modifying.
     my $path_escape_class = q{^/;:@&=A-Za-z0-9\$_.+!*'(),-};
 
-    my $path = URI::Escape::uri_escape($self->env->{PATH_INFO} || '', $path_escape_class);
+    my $path = URI::Escape::uri_escape($requ->env->{PATH_INFO} || '', $path_escape_class);
     $path .= '?' . $requ->env->{QUERY_STRING}
-        if defined $requ->env->{QUERY_STRING} && $self->env->{QUERY_STRING} ne '';
+        if defined $requ->env->{QUERY_STRING} && $requ->env->{QUERY_STRING} ne '';
 
     $base =~ s!/$!! if $path =~ m!^/!;
 

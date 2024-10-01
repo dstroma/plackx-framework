@@ -69,13 +69,13 @@ package PlackX::Framework::Handler {
       return finalized_response($postfilter_result) if $postfilter_result and is_valid_response($postfilter_result);
 
       # Clean up
-      if ($response->post_response_callbacks and ref $response->post_response_callbacks and scalar @{  $response->post_response_callbacks  }) {
+      if ($response->cleanup_callbacks and ref $response->cleanup_callbacks and scalar @{  $response->cleanup_callbacks  }) {
         if ($request->env->{'psgix.cleanup'}) {
           # If the server supports cleanup handlers, add to list to be executed after the response is served
-          push @{  $request->env->{'psgix.cleanup.handlers'}  }, @{  $response->post_response_callbacks  };
+          push @{  $request->env->{'psgix.cleanup.handlers'}  }, @{  $response->cleanup_callbacks  };
         } else {
           # If the server does not support cleanup handlers, execute them immediately
-          $_->($request->env) for @{  $response->post_response_callbacks  };
+          $_->($request->env) for @{  $response->cleanup_callbacks  };
         }
       }
 

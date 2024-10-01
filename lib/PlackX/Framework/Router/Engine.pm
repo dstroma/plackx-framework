@@ -56,7 +56,7 @@ package PlackX::Framework::Router::Engine {
     return $path;
   }
 
-  sub path_with_base_and_method ($path, $base, $method) {
+  sub path_with_base_and_method ($path, $base, $method = undef) {
     $path = path_with_base($path, $base);
     $path = path_with_method($path, $method);
     return $path;

@@ -21,7 +21,7 @@ package PlackX::Framework {
   }
 
   # Helper - Export 'app' class method to the root namespace
-  my sub export_app_sub ($destination_namespace) {
+  sub export_app_sub ($destination_namespace) {
     no strict 'refs';
     *{$destination_namespace . '::app'} = sub ($class) {
       my $handler_class = $class . '::Handler';
@@ -30,7 +30,7 @@ package PlackX::Framework {
   }
 
   # Helper - Create a subclass and mark as loaded
-  my sub generate_subclass ($new_class, $parent_class) {
+  sub generate_subclass ($new_class, $parent_class) {
     eval qq|
       package $new_class { use parent '$parent_class' }
       Module::Loaded::mark_as_loaded('$new_class');

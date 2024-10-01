@@ -30,7 +30,7 @@ sub test2 {
 				use PlackX::Framework;
 			}
 			1;
-		},
+		} or die $@,
 		"Create an empty app called $test_app_namespace"
 	);
 }

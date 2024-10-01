@@ -32,7 +32,7 @@ package PlackX::Framework::Router {
       unless $when eq 'before' or $when eq 'after';
 
     _add_filter($package, $when, {
-      action     => _coerce_action_to_subref($action, $package);
+      action     => _coerce_action_to_subref($action, $package),
       controller => $package,
       'when'     => $when,
       params     => \@slurp
@@ -93,7 +93,7 @@ package PlackX::Framework::Router {
   sub _coerce_action_to_subref ($action, $package) {
     if (not ref $action) {
       $action = ($action =~ m/::/) ?
-        \&{ $action } : $action = \&{ $package . '::' . $action };
+        \&{ $action } : \&{ $package . '::' . $action };
     }
     return $action;
   }

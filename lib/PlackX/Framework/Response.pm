@@ -6,10 +6,10 @@ package PlackX::Framework::Response {
   # Simple accessors
   use Plack::Util::Accessor qw(app_namespace stash cleanup_callbacks template);
 
-  sub is_request        { 0          }
-  sub is_response       { 1          }
-  sub continue          { undef      }
-  sub stop              { $_[0] || 1 }
+  sub is_request        { 0     }
+  sub is_response       { 1     }
+  sub continue          { undef }
+  sub stop              { $_[0] }
   sub flash_cookie_name { PlackX::Framework::Request::flash_cookie_name(shift) }
   sub print ($self, @lines)              { push @{$self->{body}}, @lines; $self     }
   sub redirect ($self, @args)            { $self->SUPER::redirect(@args);  $self    }
@@ -28,7 +28,7 @@ package PlackX::Framework::Response {
   }
 
   sub flash ($self, $value //= '') {
-    my $max_age = $value ? 120 : -1; # If value is false we delete the cookie
+    my $max_age = $value ? 300 : -1; # If value is false we delete the cookie
     $self->cookies->{flash_cookie_name($self)} = { value=>$value, path=>'/', 'max-age'=>$max_age };
     return $self;
   }
