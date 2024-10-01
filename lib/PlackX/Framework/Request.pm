@@ -4,27 +4,26 @@ package PlackX::Framework::Request {
   use Carp qw(croak);
 
   # Simple accessors
-  use Plack::Util::Accessor qw(
-    app_namespace stash cleanup_callbacks template route_parameters
-  );
+  use Plack::Util::Accessor qw(app_namespace stash route_parameters);
 
   sub max_reroutes  { 16 }
   sub is_request    {  1 }
   sub is_response   {  0 }
-  sub is_get        { uc shift->method eq 'GET'    }
-  sub is_post       { uc shift->method eq 'POST'   }
-  sub is_put        { uc shift->method eq 'PUT'    }
-  sub is_delete     { uc shift->method eq 'DELETE' }
-  sub is_ajax       { uc (shift->header('X-Requested-With') || '') eq 'XMLHTTPREQUEST' }
-  sub destination ($self)                { $self->{pxf}{dest} // $self->path_info      }
-  sub route_param ($self, $name)         { $self->{route_parameters}{$name}            }
-  sub flash_cookie_name ($self)          { 'flash' . url_crypt($self->app_class, '--') }
-  sub flash ($self)                      { $self->cookies->{$self->flash_cookie_name}  }
-  sub url_crypt ($d, $s)                 { my $h = crypt($d, $s); $h =~ tr`./`-_`; $h  }
+  sub is_get    ($self) { uc $self->method eq 'GET'    }
+  sub is_post   ($self) { uc $self->method eq 'POST'   }
+  sub is_put    ($self) { uc $self->method eq 'PUT'    }
+  sub is_delete ($self) { uc $self->method eq 'DELETE' }
+  sub is_ajax   ($self) { uc($self->header('X-Requested-With') || '') eq 'XMLHTTPREQUEST' }
+  sub destination ($self)        { $self->{destination} // $self->path_info        }
+  sub sparam ($self, $key)       { scalar $self->parameters->{$key}                }
+  sub route_param ($self, $name) { $self->{route_parameters}{$name}                }
+  sub flash_cookie_name ($self)  { 'flash' . url_crypt($self->app_namespace, '--') }
+  sub flash ($self)              { $self->cookies->{$self->flash_cookie_name}      }
+  sub url_crypt ($d, $s)         { my $h = crypt($d, $s); $h =~ tr`./`-_`; $h      }
 
   sub reroute ($self, $dest) {
-    my $routelist = $self->{pxf}{reroutes} //= [$self->path_info];
-    push @$routelist, ($self->{pxf}{dest} = $dest);
+    my $routelist = $self->{reroutes} //= [$self->path_info];
+    push @$routelist, ($self->{destination} = $dest);
 
     croak "Maximum reroutes exceeded:\n".join("\n", @$routelist)
       if @$routelist > $self->max_reroutes;
