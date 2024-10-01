@@ -15,7 +15,7 @@ package My::Test::Controller {
 
   # Routes
   ok(eval q{
-    filter 'before' => sub { $My::Test::Controller::somevar = 16; return; };
+    filter 'before' => sub { $My::Test::Controller::somevar = $$; return; };
     request '/home' => sub { };
     request_base '/app';
     request '/article/:article' => sub { };
@@ -50,7 +50,7 @@ package My::Test::Controller {
   # Test Filter
   ok($match->{prefilters}[0] and ref $match->{prefilters}[0]{action} eq 'CODE');
   ok(not $match->{prefilters}[0]{action}->());
-  ok($somevar == 16);
+  ok($somevar == $$);
 
   # Route with params
   $env->{PATH_INFO} = $env->{SCRIPT_NAME} = '/app/article/255';
