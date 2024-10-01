@@ -1,9 +1,10 @@
 use v5.40;
 package PlackX::Framework::Handler {
   use Scalar::Util qw(blessed);
+  use Module::Loaded qw(is_loaded);
 
   # Public class methods
-  sub to_app ($class)    { return sub { $class->handle_request(shift) } }
+  sub to_app ($class)    { return sub ($env) { $class->handle_request($env) } }
   sub not_found_response { [404, [], ['Not Found']]              }
   sub error_response     { [500, [], ['Internal Server Error']]  }
 
@@ -24,7 +25,7 @@ package PlackX::Framework::Handler {
     $response->stash($stash);
 
     # Maybe set up Templating, if loaded
-    if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
+    if (is_loaded($app_namespace . '::Template')) {
       eval {
         my $template = ($app_namespace . '::Template')->new($response);
         $template->set(REQUEST => $request, RESPONSE => $response);
@@ -68,14 +69,12 @@ package PlackX::Framework::Handler {
       my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
       return finalized_response($postfilter_result) if $postfilter_result and is_valid_response($postfilter_result);
 
-      # Clean up
-      if ($response->cleanup_callbacks and ref $response->cleanup_callbacks and scalar @{  $response->cleanup_callbacks  }) {
+      # Clean up (does server support cleanup handlers? Add to list or else execute now)
+      if ($response->cleanup_callbacks and scalar $response->cleanup_callbacks->@* > 0) {
         if ($request->env->{'psgix.cleanup'}) {
-          # If the server supports cleanup handlers, add to list to be executed after the response is served
-          push @{  $request->env->{'psgix.cleanup.handlers'}  }, @{  $response->cleanup_callbacks  };
+          push $request->env->{'psgix.cleanup.handlers'}->@*, $response->cleanup_callbacks->@*;
         } else {
-          # If the server does not support cleanup handlers, execute them immediately
-          $_->($request->env) for @{  $response->cleanup_callbacks  };
+          $_->($request->env) for $response->cleanup_callbacks->@*;
         }
       }
 

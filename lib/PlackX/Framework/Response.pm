@@ -36,7 +36,7 @@ package PlackX::Framework::Response {
   sub render_json ($self, $data) { $self->render_content('application/json', encode_json($data)) }
   sub render_text ($self, $text) { $self->render_content('text/plain',       $text             ) }
   sub render_html ($self, $html) { $self->render_content('text/html',        $html             ) }
-  sub render_template ($self)    { $self->{pxf}{template}->render; $self                         }
+  sub render_template ($self)    { $self->{template}->render; $self }
   sub render_content ($self, $content_type, $body) {
     $self->status(200);
     $self->content_type($content_type);

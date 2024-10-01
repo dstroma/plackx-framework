@@ -2,6 +2,7 @@ use v5.40;
 package PlackX::Framework::Request {
   use parent 'Plack::Request';
   use Carp qw(croak);
+  use Module::Loaded qw(is_loaded);
 
   # Simple accessors
   use Plack::Util::Accessor qw(app_namespace stash route_parameters);
@@ -35,7 +36,7 @@ package PlackX::Framework::Request {
     # The URI module is optional, so only load it on demand
     require PlackX::Framework::URIx;
     my $urix_class = $self->app_namespace . '::URIx';
-    $urix_class = 'PlackX::Framework::URIx' unless eval "require $urix_class; 1";
+    $urix_class = 'PlackX::Framework::URIx' unless is_loaded($urix_class) or eval "require $urix_class; 1";
     $urix_class->new_from_request($self);
   }
 }
