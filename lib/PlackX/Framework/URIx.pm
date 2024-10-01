@@ -2,14 +2,33 @@ use v5.40;
 package PlackX::Framework::URIx {
   # Since this module is optional, we try to load it during compile-time and
   # fail silently if it doesn't load, replacing new() to raise a fatal error
-  BEGIN {
-    our $URI_Fast_loaded = eval { require URI::Fast };
-    if ($URI_Fast_loaded) {
-      eval "use parent 'URI::Fast'";
-    } else {
-      no strict 'refs';
-      *{'new'} = sub { die 'URI::Fast could not be loaded'; };
-    }
+  eval q{
+    use parent 'URI::Fast'; 1
+  } or eval q{
+    sub new { die 'URI::Fast could not be loaded'; }
+  };
+
+  sub new_from_request ($class, $requ) {
+    # COPIED FROM PLACK::REQUEST
+    my $base = $requ->_uri_base;
+
+    # We have to escape back PATH_INFO in case they include stuff like
+    # ? or # so that the URI parser won't be tricked. However we should
+    # preserve '/' since encoding them into %2f doesn't make sense.
+    # This means when a request like /foo%2fbar comes in, we recognize
+    # it as /foo/bar which is not ideal, but that's how the PSGI PATH_INFO
+    # spec goes and we can't do anything about it. See PSGI::FAQ for details.
+
+    # See RFC 3986 before modifying.
+    my $path_escape_class = q{^/;:@&=A-Za-z0-9\$_.+!*'(),-};
+
+    my $path = URI::Escape::uri_escape($self->env->{PATH_INFO} || '', $path_escape_class);
+    $path .= '?' . $requ->env->{QUERY_STRING}
+        if defined $requ->env->{QUERY_STRING} && $self->env->{QUERY_STRING} ne '';
+
+    $base =~ s!/$!! if $path =~ m!^/!;
+
+    return URI::Fast->new($base . $path)->normalize;
   }
 
   sub query_set ($self, @new) {
@@ -26,18 +45,11 @@ package PlackX::Framework::URIx {
     return $self;
   }
 
-  sub query_delete_all ($self) {
-    $self->query_hash({});
-    return $self;
-  }
+  sub query_delete ($self, @keys) { $self->param($_ => undef) for @keys; $self }
+  sub query_delete_all ($self)    { $self->query_hash({}); $self }
 
-  sub query_delete ($self, @names) {
-    $self->param($_ => undef) for @names;
-    return $self;
-  }
-
-  sub query_delete_all_except ($self, @names) {
-    my %keep = map { $_ => 1  } @names;
+  sub query_delete_all_except ($self, @keys) {
+    my %keep = map { $_ => 1  } @keys;
     foreach my $param ($self->query_keys) {
       $self->param($param => undef) unless $keep{$param};
     }
@@ -132,7 +144,7 @@ list.
 =head3 query_delete_keys_starting_with($string)
 =head3 query_delete_keys_ending_with($string)
 
-Deletes any parameters in the query string that start or end (respectively) 
+Deletes any parameters in the query string that start or end (respectively)
 with the string $string.
 
 =head3 query_delete_keys_matching($pattern)

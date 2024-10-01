@@ -1,11 +1,10 @@
 use v5.40;
 package PlackX::Framework::Router {
-  our @EXPORT  = qw(request request_base filter);
   our $filters = {};
   our $bases   = {};
   our $engines = {};
 
-  sub import ($class, @wants) {
+  sub import ($class, @extra) {
     my $export_to = caller(0);
 
     # Trap errors
@@ -13,94 +12,12 @@ package PlackX::Framework::Router {
       if $class eq __PACKAGE__;
 
     # Remember which controller is using which router engine object
-    # example:
-    #   `use MyApp::Router;` will cause the below line to become
-    #   `$engines->{MyApp::Controller::Login} = MyApp::Router->engine`
     $engines->{$export_to} = $class->engine;
 
-    # Determine what to export
-    my @exports = @EXPORT;
-    if (@wants > 0) {
-      my %exports = map { $_ => 1 } @EXPORT;
-      for my $want (@wants) {
-        die "$class does not export $want" unless $exports{$want};
-      }
-      @exports = @wants;
-    }
-
     # Export
-    no strict 'refs';
-    foreach my $exportsub (@exports) {
-      *{$export_to . '::' . $exportsub} = \&{$exportsub};
+    { no strict 'refs';
+      *{$export_to . '::' . $_} = \&{'DSL_'.$_} for qw(filter request request_base);
     }
-  }
-
-  # DSL-style filter route
-  sub filter ($when, $action, @slurp) {
-    my ($package) = caller;
-
-    unless ($when eq 'before' or $when eq 'after') {
-      die "usage: filter ('before' || 'after') => sub {}";
-    }
-
-    $action = _coerce_action_to_subref($action, $package);
-
-    _add_filter($package, $when, {
-      action     => $action,
-      controller => $package,
-      'when'     => $when,
-      params     => \@slurp
-    });
-    return;
-  }
-
-  # DSL-style request route
-  sub request ($routespec, $action) {
-    my ($package) = caller;
-    my $engine    = $engines->{$package};
-
-    $action = _coerce_action_to_subref($action, $package);
-
-    $engine->add_route(
-      routespec   => $routespec,
-      base        => $bases->{$package},
-      prefilters  => _get_filters($package, 'before'),
-      action      => $action,
-      postfilters => _get_filters($package, 'after'),
-    );
-
-    return;
-  }
-
-  # DSL-style request base URI
-  sub request_base ($base) {
-    my ($package) = caller;
-    $base = _remove_trailing_slash_from_uri($base);
-    $bases->{$package} = $base;
-  }
-
-  # Class method-style route
-  # Currently does not support base or filters
-  sub add_route ($class, $spec, $action) {
-    my ($package) = caller;
-
-    $engines->{$class} ||= $class->engine;
-    my $engine = $engines->{$class};
-
-    $action = _coerce_action_to_subref($action, $package);
-
-    $engine->add_route(
-      routespec   => $spec,
-      #base        => $bases->{$package},
-      #prefilters  => _get_filters($package, 'before'),
-      action      => $action,
-      #postfilters => _get_filters($package, 'after'),
-    );
-  }
-
-  # Class method-style filter
-  sub add_filter {
-    die 'Not implemented. For request filtering please use the DSL API.';
   }
 
   sub engine ($class) {
@@ -108,9 +25,60 @@ package PlackX::Framework::Router {
     return $engine_class->instance;
   }
 
-  sub _remove_trailing_slash_from_uri ($uri) {
-    $uri = substr($uri, 0, -1) if substr($uri, -1, 1) eq '/';
-    return $uri;
+  sub DSL_filter ($when, $action, @slurp) {
+    my ($package) = caller;
+
+    die "usage: filter ('before' || 'after') => sub {}"
+      unless $when eq 'before' or $when eq 'after';
+
+    _add_filter($package, $when, {
+      action     => _coerce_action_to_subref($action, $package);
+      controller => $package,
+      'when'     => $when,
+      params     => \@slurp
+    });
+    return;
+  }
+
+  sub DSL_request ($routespec, $action) {
+    my ($package) = caller;
+    $engines->{$package}->add_route(
+      routespec   => $routespec,
+      base        => $bases->{$package},
+      prefilters  => _get_filters($package, 'before'),
+      action      => _coerce_action_to_subref($action, $package),
+      postfilters => _get_filters($package, 'after'),
+    );
+    return;
+  }
+
+  sub DSL_request_base ($base) {
+    my ($package) = caller;
+    $bases->{$package} = _remove_trailing_slash($base);
+    return;
+  }
+
+  # Class method-style (currently does not support base or filters) ###########
+  sub add_route ($class, $spec, $action) {
+    my ($package) = caller;
+
+    my $engine = ($engines->{$class} ||= $class->engine);
+    $engine->add_route(
+      routespec   => $spec,
+      #base        => $bases->{$package},
+      #prefilters  => _get_filters($package, 'before'),
+      action      => _coerce_action_to_subref($action, $package),
+      #postfilters => _get_filters($package, 'after'),
+    );
+  }
+
+  sub add_filter {
+    die 'Not implemented. For request filtering please use the DSL API.';
+  }
+
+  # Helpers ###################################################################
+  sub _remove_trailing_slash ($uri) {
+    return substr($uri, -1, 1) eq '/' ? substr($uri, 0, -1) : $uri;
   }
 
   sub _get_filters ($class, $when) {
@@ -124,11 +92,8 @@ package PlackX::Framework::Router {
 
   sub _coerce_action_to_subref ($action, $package) {
     if (not ref $action) {
-      if ($action =~ m/::/) {
-        $action = \&{ $action };
-      } else {
-        $action = \&{ $package . '::' . $action };
-      }
+      $action = ($action =~ m/::/) ?
+        \&{ $action } : $action = \&{ $package . '::' . $action };
     }
     return $action;
   }

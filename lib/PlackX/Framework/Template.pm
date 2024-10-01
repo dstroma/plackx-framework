@@ -1,53 +1,47 @@
 use v5.40;
 package PlackX::Framework::Template {
-  my %template_engine_objects = ();
+  my %engine_objects = ();
 
   sub import ($class, $options = {}) {
-    die "Import from your app's sublcass of PlackX::Framework::Template, not directly"
+    die "Import from your app's subclass of PlackX::Framework::Template, not directly"
       if $class eq __PACKAGE__;
 
     # Do nothing if get_template_system_object returns something
-    return if $class->get_template_engine;
+    return if $class->get_engine;
 
     # Setup Template Toolkit if available
     try {
       require Template;
       $options->{'INCLUDE_PATH'} //= 'template';
-      $class->set_template_engine(Template->new($options));
+      $class->set_engine(Template->new($options));
     } catch ($e) {
       warn "Unable to load Template Toolkit: $e";
     }
   }
 
-  sub new ($class, $response, $templater = undef) {
+  sub new ($class, $response, $engine = undef) {
     die 'Usage: ->new($response_object)' unless $response and ref $response;
 
-    $templater = $class->get_template_engine() unless $templater;
-    die 'Not a valid template engine object'   unless $templater and ref $templater;
+    $engine = $class->get_engine() unless $engine;
+    die 'No valid template engine object' unless $engine and ref $engine;
 
-    return bless {
-      template_engine_object => $templater,
-      response_object => $response,
-      params => {},
-    }, $class;
+    return bless { engine => $engine, params => {}, response => $response }, $class;
   }
 
-  sub self_to_class ($self)             { ref $self ? ref $self : $self }
-  sub get_template_engine ($self)       { $template_engine_objects{ref $self ? ref $self : $self} }
-  sub set_template_engine ($self, $new) { $template_engine_objects{self_to_class $self} = $new }
-  sub set_filename ($self, $fname)      { $self->{filename} = $fname }
-  sub param ($self, $name)              { $self->{params}{$name}     }
-  sub add_params ($self, %params)       { @{$self->{params}}{keys %params} = values %params; $self }
-  sub render ($self, @args)             { $self->output(@args); $self->{response_object} }
-  *set = \&add_params;
+  sub output ($self, $file = undef) {
+    $file //= $self->{filename};
+    $self->{engine}->process($file, $self->{params}, $self->{response}) || die 'Template error: '.$self->{engine}->error;
+  }
+
+  sub self_to_class ($self)         { ref $self ? ref $self : $self }
+  sub get_engine ($self)            { $engine_objects{self_to_class $self} }
+  sub set_engine ($self, $new)      { $engine_objects{self_to_class $self} = $new }
+  sub set_filename ($self, $fname)  { $self->{filename} = $fname }
+  sub get_param ($self, $name)      { $self->{params}{$name}     }
+  sub set_params ($self, %params)   { @{$self->{params}}{keys %params} = values %params; $self }
+  sub render ($self, @args)         { $self->output(@args); $self->{response} }
+  *set = \&set_params;
   *use = \&set_filename;
-
-  sub output ($self, $filename = undef) {
-    # If using a non-TT compatible engine, override output() in your subclass
-    $filename //= $self->{filename};
-    my $engine  = $self->{template_engine_object};
-    $engine->process($filename, $self->{params}, $self->{response_object}) || die 'Unable to process template: ', $engine->error, $!;
-  }
 }
 
 =pod
@@ -60,8 +54,17 @@ PlackX::Framework::Template - Use templates in a PlackX::Framework app.
 =head1 SYNOPSIS
 
 This module allows a convenient way to select template files, add parameters,
-process, and output them. By default, Template Toolkit ('Template') is used,
-but you can specify your own.
+and process and output the templates. By default, the Template Toolkit module
+('Template') is used as the engine, but you can use your own.
+
+If using Template Toolkit, you can pass options to Template->new by including
+a hashref in your use statement:
+
+    # Your app
+    package MyApp {
+      use PlackX::Framework; # (automatically generates MyApp::Template...)
+      use MyApp::Template { OPTION => 'value', ... };
+    }
 
 Your PlackX::Framework app will automatically create a new instance of this
 class and make it available to your $response object.
@@ -69,23 +72,105 @@ class and make it available to your $response object.
     # In your controller
     my $template = $response->template;
     $template->set_filename('foobar.tmpl'); # or ->use('foobar.tmpl');
-    $template->add_params(building => 'house', color => 'orange'); # or ->set(...)
+    $template->add_params(food => 'pizza', drink => 'beer'); # or ->set(...)
     return $template->render;
 
 
 =head1 CUSTOM TEMPLATE ENGINE
 
-To use your own, override the get_template_engine() method to return an
-instance of your templating engine object. If your engine does not have a
-Template-Toolkit-compatible process() method, you will have to override
-the output() method of this module as well.
+To use your own, subclass this module and override get_engine() method to
+return an instance of your templating engine object. If your engine does not
+have a Template Toolkit-like process() method, you will have to override the
+output() method of this module as well.
 
-For example:
+This example assumes you reuse the same template object for each request:
 
     package MyApp::Template {
-      my $te = Some::Template::Engine->new;
-      sub get_template_engine { $te; }
+      my $templater = Some::Template::Engine->new;
+      sub get_engine { $templater; }
       sub output ($self, $file) {
-        $self->get_template_engine->render($file, $self->{'params'}->%*);
+        $self->get_engine->render($file, $self->{'params'}->%*);
       }
     }
+
+However you can also create a new one for each request:
+
+    package MyApp::Template {
+      sub get_engine { Some::Template::Engine->new() }
+      sub output ($self, $file) {
+        $self->get_engine->render($file, $self->{'params'}->%*);
+      }
+    }
+
+As an example, consider an extremely simple template engine that simply
+replaces {{variable}} with the value of key 'variable' in the params:
+
+    package MyTemplateEngine {
+      sub new { bless {}, shift }
+      sub process ($self, $file, $params, $response) {
+        my $content = readfile($file); # readfile() implementation not shown
+        foreach my ($key, $val) (%$params) {
+          $content =~ s`\{\{$key\}\}`$val`g;
+        }
+        $response->print($content);
+      }
+    }
+
+Which we can use our new engine in our PlackX::Framework app like this:
+
+    package MyApp::Template {
+      use parent 'PlackX::Framework::Template';
+      sub get_engine { MyTemplateEngine->new() }
+    }
+
+In this case, there is no need to override output() as our engine's process()
+method is TT-like.
+
+
+=head1 CLASS METHODS
+
+=head2 new($response)
+=head2 new($response, $engine)
+
+Create a new instance of this class, optionally specifying the
+template engine. If not specified, get_engine() will be called.
+
+The first argument, a PlackX::Framework response object, is required.
+
+
+=head2 get_engine
+
+Get the Template engine object (e.g., the Template Toolkit instance).
+
+=head2 set_engine($obj)
+
+Set the Template engine object (e.g., the Template Toolkit instance).
+
+
+=head1 OBJECT METHODS
+
+=head2 get_param($key)
+
+Get the value of a template parameter.
+
+=head2 set_params($k => $v, $k2 => $v2...)
+=head2 set(...)
+
+Set the value of template parameters. Aliased as set() for short.
+
+=head2 set_filename($filename)
+=head2 use(...)
+
+Set the template filename to be automatically passed to output().
+Aliased as use() for short.
+
+=head2 output
+=head2 output($filename)
+
+Process the template file, to optionally include the filename which will
+override any previous calls to set_filename() or use().
+
+=head2 render(...)
+
+Call the output(...) method, passing the same arguments, and return the
+Plack response object.
