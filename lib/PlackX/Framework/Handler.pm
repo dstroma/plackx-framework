@@ -15,13 +15,13 @@ package PlackX::Framework::Handler {
     my $request  = $class->env_or_req_to_req($env_or_req);
     my $response = $maybe_resp || ($app_namespace . '::Response')->new;
 
-    $request->set_app_class($class);
-    $response->set_app_class($class);
+    $request->app_namespace($app_namespace);
+    $response->app_namespace($app_namespace);
 
     # Set up stash
     my $stash = ($request->stash or $response->stash or {});
-    $request->set_stash($stash);
-    $response->set_stash($stash);
+    $request->stash($stash);
+    $response->stash($stash);
 
     # Maybe set up Templating, if loaded
     if (Module::Loaded::is_loaded($app_namespace . '::Template')) {
@@ -46,7 +46,7 @@ package PlackX::Framework::Handler {
 
     my $rt_engine = ($class->app_namespace . '::Router::Engine')->instance;
     if (my $match = $rt_engine->match($request)) {
-      $request->set_route_parameters($match);
+      $request->route_parameters($match);
 
       # Execute prefilters
       my $prefilter_result = execute_filters($match->{prefilters}, $request, $response);

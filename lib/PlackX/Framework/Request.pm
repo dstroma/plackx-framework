@@ -3,6 +3,11 @@ package PlackX::Framework::Request {
   use parent 'Plack::Request';
   use Carp qw(croak);
 
+  # Simple accessors
+  use Plack::Util::Accessor qw(
+    app_namespace stash cleanup_callbacks template route_parameters
+  );
+
   sub max_reroutes  { 16 }
   sub is_request    {  1 }
   sub is_response   {  0 }
@@ -12,13 +17,7 @@ package PlackX::Framework::Request {
   sub is_delete     { uc shift->method eq 'DELETE' }
   sub is_ajax       { uc (shift->header('X-Requested-With') || '') eq 'XMLHTTPREQUEST' }
   sub destination ($self)                { $self->{pxf}{dest} // $self->path_info      }
-  sub app_class ($self)                  { $self->{app_class}                          }
-  sub set_app_class ($self, $new)        { $self->{app_class} = $new                   }
-  sub stash ($self)                      { $self->{stash}                              }
-  sub set_stash ($self, $stash)          { $self->{stash} = $stash                     }
   sub route_param ($self, $name)         { $self->{route_parameters}{$name}            }
-  sub route_parameters ($self)           { $self->{route_parameters}                   }
-  sub set_route_parameters ($self, $new) { $self->{route_parameters} = $new            }
   sub flash_cookie_name ($self)          { 'flash' . url_crypt($self->app_class, '--') }
   sub flash ($self)                      { $self->cookies->{$self->flash_cookie_name}  }
   sub url_crypt ($d, $s)                 { my $h = crypt($d, $s); $h =~ tr`./`-_`; $h  }
