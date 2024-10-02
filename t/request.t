@@ -2,12 +2,17 @@
 use v5.40;
 use Test::More;
 
+package MyExample::Request {
+  use parent 'PlackX::Framework::Request';
+  sub app_namespace { 'MyExample' }
+}
+
 {
   # Require
   require_ok('PlackX::Framework::Request');
 
   # Create object
-  my $request = PlackX::Framework::Request->new(sample_env());
+  my $request = MyExample::Request->new(sample_env());
   ok($request, 'Create request object');
   isa_ok($request, 'PlackX::Framework::Request');
 
@@ -31,7 +36,6 @@ use Test::More;
   ok($request->destination eq '/new');
 
   # Namespace
-  $request->app_namespace('MyExample');
   ok($request->app_namespace eq 'MyExample');
 
   # Flash

@@ -25,7 +25,7 @@ package PlackX::Framework {
   sub export_app_sub ($destination_namespace) {
     no strict 'refs';
     *{$destination_namespace . '::app'} = sub ($class) {
-      my $handler_class = $class . '::Handler';
+      state $handler_class = $class . '::Handler';
       $handler_class->to_app;
     }
   }
@@ -43,9 +43,8 @@ package PlackX::Framework {
   sub generate_subclass ($new_class, $parent_class) {
     eval qq{
       package $new_class { use parent '$parent_class' }
-      Module::Loaded::mark_as_loaded('$new_class');
-      1;
-    } or die $@;
+      return Module::Loaded::mark_as_loaded('$new_class');
+    } or die "Cannot create class: $@";
   }
 }
 

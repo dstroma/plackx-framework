@@ -14,7 +14,7 @@ package PlackX::Framework::Handler {
     # Get or create request and response objects
     my $env      = $class->env_or_req_to_env($env_or_req);
     my $request  = $class->env_or_req_to_req($env_or_req);
-    my $response = $maybe_resp || ($app_namespace . '::Response')->new;
+    my $response = $maybe_resp || ($app_namespace . '::Response')->new(200);
 
     # Set up stash
     my $stash = ($request->stash or $response->stash or {});
@@ -22,17 +22,14 @@ package PlackX::Framework::Handler {
     $response->stash($stash);
 
     # Maybe set up Templating, if loaded
-    if (is_loaded($app_namespace . '::Template')) {
-      eval {
-        my $template = ($app_namespace . '::Template')->new($response);
-        $template->set(REQUEST => $request, RESPONSE => $response);
-        $response->template($template);
-      };
-    }
+    eval {
+      my $template = ($app_namespace . '::Template')->new($response);
+      $template->set(REQUEST => $request, RESPONSE => $response);
+      $response->template($template);
+    } if is_loaded($app_namespace . '::Template');
 
     # Clear flash if set, set response defaults
     $response->flash(undef);
-    $response->status(200);
     $response->content_type('text/html');
 
     return $class->route_request($request, $response);

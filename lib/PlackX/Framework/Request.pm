@@ -8,8 +8,8 @@ package PlackX::Framework::Request {
   use Plack::Util::Accessor qw(stash route_parameters);
 
   sub max_reroutes      { 16 }
-  sub is_request        {  1 }
-  sub is_response       {  0 }
+  sub is_request        { 1 }
+  sub is_response       { 0 }
   sub is_get    ($self) { uc $self->method eq 'GET'    }
   sub is_post   ($self) { uc $self->method eq 'POST'   }
   sub is_put    ($self) { uc $self->method eq 'PUT'    }
