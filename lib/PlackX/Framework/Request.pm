@@ -5,7 +5,7 @@ package PlackX::Framework::Request {
   use Module::Loaded qw(is_loaded);
 
   # Simple accessors
-  use Plack::Util::Accessor qw(app_namespace stash route_parameters);
+  use Plack::Util::Accessor qw(stash route_parameters);
 
   sub max_reroutes      { 16 }
   sub is_request        {  1 }

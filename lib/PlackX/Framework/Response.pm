@@ -4,7 +4,7 @@ package PlackX::Framework::Response {
   use JSON::MaybeXS qw(encode_json decode_json);
 
   # Simple accessors
-  use Plack::Util::Accessor qw(app_namespace stash cleanup_callbacks template);
+  use Plack::Util::Accessor qw(stash cleanup_callbacks template);
 
   sub is_request        { 0     }
   sub is_response       { 1     }

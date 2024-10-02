@@ -18,6 +18,7 @@ package PlackX::Framework {
     foreach my $module (optional_modules()) {
       eval 'require '.$caller.'::'.$module; # Load subclass maybe
     }
+    export_app_namespace($caller, $_) for (required_modules(), optional_modules());
   }
 
   # Helper - Export 'app' class method to the root namespace
@@ -29,13 +30,22 @@ package PlackX::Framework {
     }
   }
 
+  sub export_app_namespace ($namespace, $module) {
+    no strict 'refs';
+    my $exists = eval $namespace.'::'.$module.'::app_namespace()';
+    die 'app_namespace() sub exists but not expected value'
+      if $exists and ($exists ne $namespace);
+    *{$namespace.'::'.$module.'::app_namespace'} = sub { $namespace }
+      unless $exists;
+  }
+
   # Helper - Create a subclass and mark as loaded
   sub generate_subclass ($new_class, $parent_class) {
-    eval qq|
+    eval qq{
       package $new_class { use parent '$parent_class' }
       Module::Loaded::mark_as_loaded('$new_class');
       1;
-    | or die $@;
+    } or die $@;
   }
 }
 

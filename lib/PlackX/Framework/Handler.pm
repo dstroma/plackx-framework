@@ -16,9 +16,6 @@ package PlackX::Framework::Handler {
     my $request  = $class->env_or_req_to_req($env_or_req);
     my $response = $maybe_resp || ($app_namespace . '::Response')->new;
 
-    $request->app_namespace($app_namespace);
-    $response->app_namespace($app_namespace);
-
     # Set up stash
     my $stash = ($request->stash or $response->stash or {});
     $request->stash($stash);
@@ -84,8 +81,7 @@ package PlackX::Framework::Handler {
     return $class->not_found_response;
   }
 
-  #######################################################################
-  # Helpers
+  # Helpers ###################################################################
 
   sub check_request_prefix ($class, $request) {
     if ($class->can('uri_prefix') and my $prefix = $class->uri_prefix) {
@@ -118,11 +114,6 @@ package PlackX::Framework::Handler {
   sub finalized_response {
     my $response = pop;
     return ref $response eq 'ARRAY' ? $response : $response->finalize;
-  }
-
-  sub app_namespace ($class) {
-    die 'Unable to determine app namespace' unless $class =~ m/^(.+)\:\:Handler$/;
-    return $1;
   }
 
   sub env_or_req_to_req ($class, $env_or_req) {
