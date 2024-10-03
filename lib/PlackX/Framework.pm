@@ -52,32 +52,27 @@ package PlackX::Framework {
 
 =head1 NAME
 
-PlackX::Framework - A thin framework for Plack-based web apps.
+PlackX::Framework - A thin framework for PSGI/Plack web apps.
 
 
 =head1 SYNOPSIS
 
-This module is the root module for the PlackX::Framework web application
-framework. It is responsible for loading all of the related modules as well as
-the user's subclasses of these modules, creating empty subclasses of them if
-necessary.
-
-A simple PlackX::Framework application could be all in one .psgi file:
+This is a micro-framework for PSGI web apps, and is based on Plack. A simple
+PlackX::Framework application could be all in one .psgi file:
 
     # app.psgi
     package MyProject {
-      use PlackX::Framework; # use, NOT use 'parent'
+      use PlackX::Framework; # loads and sets up the framework
       use MyProject::Router; # exports `request', 'request_base', and 'filter'
-      request '/' => sub {
-         my ($request, $response) = @_;
+      request '/' => sub ($request, $response) {
          $response->body('Hello, ', $request->param('name'));
          return $response;
       };
     }
     MyProject->app;
 
-However, a larger application would be typically laid out with separate modules
-in separate files, for example in MyProject::Controller::* modules. Each should
+A larger application would be typically laid out with separate modules in
+separate files, for example in MyProject::Controller::* modules. Each should
 use MyProject::Router if the DSL-style routing is desired.
 
 This software is considered to be in an experimental, "alpha" stage. Use at 
@@ -95,7 +90,7 @@ PlackX::Framework::Response
 PlackX::Framework::Router
 PlackX::Framework::Router::Engine
 PlackX::Framework::Template
-PlackX::Framework::URIX
+PlackX::Framework::URIx
 
 The statement "use PlackX::Framework" will automatically find and load all of
 the required modules. Then it will look for subclasses of the modules listed 
@@ -112,10 +107,10 @@ and so on, or create them if they do not exist.
 
 The PlackX::Framework::Request and PlackX::Framework::Response modules are
 subclasses of Plack::Request and Plack::Response sprinkled with additional
-features. See the documentation of those modules for details.
+features.
 
-The PlackX::Framework::URIx module is a subclass of URI::Fast, with some
-syntactic sugar.
+The optional PlackX::Framework::URIx module is a subclass of URI::Fast, with
+some syntactic sugar for manipulating query string.
 
 The PlackX::Framework::Router::Engine is a subclass of Router::Boom with some
 extra convenience methods. Normally, you would not have to use this module
@@ -189,6 +184,8 @@ subclassing, while using the framework will not.
 
 =head2 Configuration
 
+=head3 uri_prefix
+
 In your application's root namespace, you can set the base URL for requests
 by defining a uri_prefix subroutine.
 
@@ -211,11 +208,11 @@ automatically load and set up Template Toolkit if you:
 
     use MyProject::Template;
 
-(assuming MyProject has `use`d PlackX::Framework).
+(assuming MyProject has imported from PlackX::Framework).
 
 Note that this feature relies on the import() method of your app's
 PlackX::Framework::Template subclass being called (this subclass is also
-created automatically if you do not have a MyApp/Template.pm module).
+created automatically if you do not have a MyApp/Template.pm file).
 Therefore, the following will not load Template Toolkit:
 
     use MyApp::Template ();  # Template Toolkit is not loaded
