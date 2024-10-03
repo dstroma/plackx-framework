@@ -26,7 +26,7 @@ package PlackX::Framework::Request {
     my $routelist = $self->{reroutes} //= [$self->path_info];
     push @$routelist, ($self->{destination} = $dest);
 
-    croak "Maximum reroutes exceeded:\n".join("\n", @$routelist)
+    croak "Excessive reroutes:\n" . join("\n", @$routelist)
       if @$routelist > $self->max_reroutes;
 
     return $self;
@@ -37,6 +37,6 @@ package PlackX::Framework::Request {
     require PlackX::Framework::URIx;
     my $urix_class = $self->app_namespace . '::URIx';
     $urix_class = 'PlackX::Framework::URIx' unless is_loaded($urix_class) or eval "require $urix_class; 1";
-    $urix_class->new_from_request($self);
+    return $urix_class->new_from_request($self);
   }
 }

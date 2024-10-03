@@ -59,31 +59,22 @@ package PlackX::Framework::Router {
   }
 
   # Class method-style (currently does not support base or filters) ###########
-  sub add_route ($class, $spec, $action) {
+  sub add_route ($class, $spec, $action, %options) {
     my ($package) = caller;
-
+    $options{'filter'} //= $options{'filters'};
     my $engine = ($engines->{$class} ||= $class->engine);
     $engine->add_route(
       routespec   => $spec,
-      #base        => $bases->{$package},
-      #prefilters  => _get_filters($package, 'before'),
+      base        => $options{'base'}   ? _remove_trailing_slash($options{'base'}) : undef,
+      prefilters  => $options{'filter'} ? _coerce_arrayref($options{'filter'}{'before'}) : undef,
       action      => _coerce_action_to_subref($action, $package),
-      #postfilters => _get_filters($package, 'after'),
+      postfilters => $options{'filter'} ? _coerce_arrayref($options{'filter'}{'after' }) : undef,
     );
   }
 
-  sub add_filter {
-    die 'Not implemented. For request filtering please use the DSL API.';
-  }
-
   # Helpers ###################################################################
-  sub _remove_trailing_slash ($uri) {
-    return substr($uri, -1, 1) eq '/' ? substr($uri, 0, -1) : $uri;
-  }
-
-  sub _get_filters ($class, $when) {
-    return $filters->{$class}{$when};
-  }
+  sub _remove_trailing_slash ($uri) { substr($uri, -1, 1) eq '/' ? substr($uri, 0, -1) : $uri }
+  sub _get_filters ($class, $when)  { $filters->{$class}{$when} }
 
   sub _add_filter ($class, $when, $spec) {
     $filters->{$class}{$when} ||= [];
@@ -97,6 +88,8 @@ package PlackX::Framework::Router {
     }
     return $action;
   }
+
+  sub _coerce_arrayref ($val) { ref $val eq 'ARRAY' ? $val : [$val] }
 }
 
 =pod

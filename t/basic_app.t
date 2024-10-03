@@ -9,6 +9,9 @@ my $test_app_namespace = 'My::TestApp';
 test1();
 test2();
 test3();
+
+$test_app_namespace = 'My::TestApp2';
+
 test4();
 test5();
 test6();
