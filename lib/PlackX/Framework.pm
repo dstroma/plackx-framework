@@ -25,7 +25,7 @@ package PlackX::Framework {
     export_app_namespace($caller, $_) for (required_modules(), optional_modules());
   }
 
-  # Helper - Export 'app' class method to the root namespace
+  # Export app() sub to the app's main package
   sub export_app_sub ($destination_namespace) {
     no strict 'refs';
     *{$destination_namespace . '::app'} = sub ($class) {
@@ -34,13 +34,12 @@ package PlackX::Framework {
     }
   }
 
+  # Export app_namespace() to App::Request, App::Response, etc.
   sub export_app_namespace ($namespace, $module) {
     no strict 'refs';
     my $exists = eval $namespace.'::'.$module.'::app_namespace()';
-    die 'app_namespace() sub exists but not expected value'
-      if $exists and ($exists ne $namespace);
-    *{$namespace.'::'.$module.'::app_namespace'} = sub { $namespace }
-      unless $exists;
+    die "app_namespace(): expected $namespace" if $exists and $exists ne $namespace;
+    *{$namespace.'::'.$module.'::app_namespace'} = sub { $namespace } unless $exists;
   }
 
   # Helper - Create a subclass and mark as loaded
@@ -82,8 +81,9 @@ use MyProject::Router if the DSL-style routing is desired.
 This software is considered to be in an experimental, "alpha" stage. Use at 
 your own risk.
 
-
 =head1 DESCRIPTION
+
+=head2 Overview and Required Components
 
 PlackX::Framework consists of the required modules:
 
@@ -112,23 +112,105 @@ for any required modules that do not exist. The following example
 will attempt to load MyProject::Handler, MyProject::Request,
 MyProject::Response and so on, or create them if they do not exist.
 
-The Template and URIx modules are optional. You can subclass them yourself, or
-you can automatically generate them like so:
+
+=head2 Optional Components
+
+The Template and URIx modules are included in the distribution, but loading
+them is optional - to save memory and compile time if they are not needed.
+Just as with the required modules, you can subclass them yourself, or you can
+automatically generate them like so:
 
     package MyProject {
-        use PlackX::Framework qw(Template URIx); # or :template :urix
+        # Automagically generate MyProject::Template and ::URIx
+        use PlackX::Framework qw(Template URIx);
+
+        # Or automatically generate/load all optional modules
+        use PlackX::Framework qw(:all);
     }
+
+To reiterate, the above is only necessary if you you do not have
+MyProject/{Optional Module}.pm in your @INC and want to automatically create
+them.
+
+
+=head2 The Pieces and How They Work Together
+
+=head3 PlackX::Framework
+
+PlackX::Framework is basically a management module, that is responsible for
+loading required and optional components. It exports one mandatory symbol,
+app(), to the calling package.
+
+=head3 PlackX::Framework::Handler
+
+PlackX::Framework::Handler is the package responsible for request processing.
+You would not normally have to subclass this module manually unless you would
+like to customize behavior of the framework.
+
+=head3 PlackX::Framework::Request
+=head3 PlackX::Framework::Response
 
 The PlackX::Framework::Request and PlackX::Framework::Response modules are
 subclasses of Plack::Request and Plack::Response sprinkled with additional
 features.
 
-The optional PlackX::Framework::URIx module is a subclass of URI::Fast, with
-some syntactic sugar for manipulating query string.
+=item stash()
+
+Both feature a shared "stash" which is a hashref in which you can store any
+data you would like. The "stash" is not a user session but a way to
+temporarily store information during a request/response cycle. It is
+re-initialized for each cycle.
+
+=item flash()
+
+They also feature a "flash" cookie which you can use to store information on
+the user end for one cycle. It is automatically cleared in the following
+cycle. For example...
+
+    $response->flash('Goodbye!'); # Store message in a cookie
+
+On the next request:
+
+    $request->flash; # Returns 'Goodbye!'.
+
+During the response phase, the flash cookie is cleared, unless you set another
+one.
+
+=head3 PlackX::Framework::Router
+
+This module exports the request, request_base, and filter functions to give you
+a minimalistic web app controller DSL. You can import this into your main app
+package or separate controller packages.
+
+    # Set up the app
+    package MyApp {
+      use PlackX::Framework;
+      # You can also use MyApp::Router here...
+    }
+
+    # Note: the name of your controller module doesn't matter, but it must
+    # import from your subclass, e.g., MyApp::Router, not directly from
+    # PlackX::Framework::Router!
+    package MyApp::Controller {
+      use MyApp::Router;
+      request_base '/app';
+      request '/home' => sub {
+        ...
+      };
+      request { post => '/login' } => sub {
+        ...
+      };
+    }
+
+
+=head3 PlackX::Framework::Router::Engine
 
 The PlackX::Framework::Router::Engine is a subclass of Router::Boom with some
 extra convenience methods. Normally, you would not have to use this module
 directly. It is used by PlackX::Framework::Router internally.
+
+
+=head3 The PlackX::Framework::Template
 
 The PlackX::Framework::Template module can automatically load and set up
 Template Toolkit, offering several convenience methods. If you desire to use
@@ -137,7 +219,20 @@ necessary in your subclass. A new instance of this class is generated for
 each request by the app() method of PlackX::Framework::Handler.
 
 
-=head2 Why Another Framework?
+=head3 PlackX::Framework::URIx
+
+The optional PlackX::Framework::URIx module is a subclass of URI::Fast, with
+some syntactic sugar for manipulating query string. It is made available to
+your request objects through $request->urix (the x is to not confuse it
+with the Plack::Request uri method).
+
+
+=head3 PlackX::Framework::Util
+
+Mainly used internally.
+
+
+=head1 Why Another Framework?
 
 After converting a mod_perl2 web application to use Plack instead, where
 Plack::Request and Plack::Response replaced Apache2::Request and
