@@ -5,19 +5,22 @@ package PlackX::Framework {
   sub optional_modules { qw(URIx Template) }
 
   # Export ->app and load parent classes and load or create subclasses
-  sub import {
-    my $caller = caller(0);
+  sub import (@options) {
+    my %options = map { $_ => 1 } @options;
+    my $caller  = caller(0);
     export_app_sub($caller);
 
     # Load or create required modules, attempt to load optional ones
     foreach my $module (required_modules()) {
-      eval 'require PlackX::Framework::'.$module or die $@; # Load parent or error
+      eval 'require PlackX::Framework::'.$module or die $@; # Load parent or die
       my $loaded = eval 'require '.$caller.'::'.$module;    # Load subclass maybe
-      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module, 1) unless $loaded;
+      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
+        if !$loaded;
     }
     foreach my $module (optional_modules()) {
-      my $loaded = eval 'require '.$caller.'::'.$module; # Load subclass maybe
-      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module, 0) unless $loaded;
+      my $loaded = eval 'require '.$caller.'::'.$module;    # Load subclass maybe
+      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
+        if !$loaded and ($options{$module} or $options{':'.lc($module)} or $options{':all'});
     }
     export_app_namespace($caller, $_) for (required_modules(), optional_modules());
   }
@@ -41,11 +44,11 @@ package PlackX::Framework {
   }
 
   # Helper - Create a subclass and mark as loaded
-  sub generate_subclass ($new_class, $parent_class, $required = 1) {
+  sub generate_subclass ($new_class, $parent_class) {
     eval qq{
       package $new_class { use parent '$parent_class' }
       return Module::Loaded::mark_as_loaded('$new_class');
-    } or !$required or die "Cannot create class: $@";
+    } or die "Cannot create class: $@";
   }
 }
 
@@ -82,7 +85,7 @@ your own risk.
 
 =head1 DESCRIPTION
 
-PlackX::Framework consists of the following modules:
+PlackX::Framework consists of the required modules:
 
 PlackX::Framework
 PlackX::Framework::Handler
@@ -90,21 +93,31 @@ PlackX::Framework::Request
 PlackX::Framework::Response
 PlackX::Framework::Router
 PlackX::Framework::Router::Engine
+
+And the following optional modules:
+
 PlackX::Framework::Template
 PlackX::Framework::URIx
 
 The statement "use PlackX::Framework" will automatically find and load all of
 the required modules. Then it will look for subclasses of the modules listed 
 above that exist in your namespace and load them, or create empty subclasses
-for any that do not exist. The following example
+for any required modules that do not exist. The following example
 
     package MyProject {
         use PlackX::Framework;
         # ...app logic here...
     }
 
-will attempt to load MyProject::Handler, MyProject::Request, MyProject::Response
-and so on, or create them if they do not exist.
+will attempt to load MyProject::Handler, MyProject::Request,
+MyProject::Response and so on, or create them if they do not exist.
+
+The Template and URIx modules are optional. You can subclass them yourself, or
+you can automatically generate them like so:
+
+    package MyProject {
+        use PlackX::Framework qw(Template URIx); # or :template :urix
+    }
 
 The PlackX::Framework::Request and PlackX::Framework::Response modules are
 subclasses of Plack::Request and Plack::Response sprinkled with additional
