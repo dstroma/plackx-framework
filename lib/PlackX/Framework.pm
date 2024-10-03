@@ -60,13 +60,13 @@ PlackX::Framework - A thin framework for PSGI/Plack web apps.
 
 =head1 SYNOPSIS
 
-This is a micro-framework for PSGI web apps, and is based on Plack. A simple
+This is a micro-framework for PSGI web apps, based on Plack. A simple
 PlackX::Framework application could be all in one .psgi file:
 
     # app.psgi
     package MyProject {
-      use PlackX::Framework; # loads and sets up the framework
-      use MyProject::Router; # exports `request', 'request_base', and 'filter'
+      use PlackX::Framework; # loads and sets up the framework and subclasses
+      use MyProject::Router; # exports router DSL
       request '/' => sub ($request, $response) {
          $response->body('Hello, ', $request->param('name'));
          return $response;
