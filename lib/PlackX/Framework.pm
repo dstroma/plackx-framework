@@ -12,11 +12,12 @@ package PlackX::Framework {
     # Load or create required modules, attempt to load optional ones
     foreach my $module (required_modules()) {
       eval 'require PlackX::Framework::'.$module or die $@; # Load parent or error
-      my $loaded =  eval 'require '.$caller.'::'.$module;   # Load subclass maybe
-      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module) unless $loaded;
+      my $loaded = eval 'require '.$caller.'::'.$module;    # Load subclass maybe
+      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module, 1) unless $loaded;
     }
     foreach my $module (optional_modules()) {
-      eval 'require '.$caller.'::'.$module; # Load subclass maybe
+      my $loaded = eval 'require '.$caller.'::'.$module; # Load subclass maybe
+      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module, 0) unless $loaded;
     }
     export_app_namespace($caller, $_) for (required_modules(), optional_modules());
   }
@@ -40,11 +41,11 @@ package PlackX::Framework {
   }
 
   # Helper - Create a subclass and mark as loaded
-  sub generate_subclass ($new_class, $parent_class) {
+  sub generate_subclass ($new_class, $parent_class, $required = 1) {
     eval qq{
       package $new_class { use parent '$parent_class' }
       return Module::Loaded::mark_as_loaded('$new_class');
-    } or die "Cannot create class: $@";
+    } or !$required or die "Cannot create class: $@";
   }
 }
 
