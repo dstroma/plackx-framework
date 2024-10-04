@@ -1,125 +1,91 @@
-use 5.10.0;
-use strict;
-use warnings;
-
-package PlackX::Framework;
-use PlackX::Framework::Handler ();
-use PlackX::Framework::Request ();
-use PlackX::Framework::Response ();
-use PlackX::Framework::Router ();
-use PlackX::Framework::Router::Engine ();
+use v5.40;
 use Module::Loaded ();
+package PlackX::Framework {
+  sub required_modules { qw(Handler Request Response Router Router::Engine) }
+  sub optional_modules { qw(URIx Template) }
 
-# Not everyone will need these modules, do not load by default
-#use PlackX::Framework::Template ();
-#use PlackX::Framework::URIx (); 
+  # Export ->app and load parent classes and load or create subclasses
+  sub import (@options) {
+    my %options = map { $_ => 1 } @options;
+    my $caller  = caller(0);
+    export_app_sub($caller);
 
-sub modules {
-  return (
-    'Handler'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Request'          => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Response'         => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Router'           => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'Router::Engine'   => { autoload => 1, auto_load_subclass => 1, auto_create_subclass => 1 },
-    'URIx'             => { autoload => 1, auto_load_subclass => 1,                           },
-    'Template'         => {                auto_load_subclass => 1, auto_create_subclass => 1 },
-  );
-}
-
-sub import {
-  my $caller = caller(0);  # use this module will load or create subclasses in caller's namespace
-
-  # Load the application's subclassed versions of PlackX::Framework::*
-  my %modules = modules();
-  foreach my $module (keys %modules) {
-    my %loaded = ();
-
-    # Attempt to load the user's subclass of the respective module
-    if ($modules{$module}->{auto_load_subclass}) {
-      $loaded{$module} = load_subclass($caller, $module);
+    # Load or create required modules, attempt to load optional ones
+    foreach my $module (required_modules()) {
+      eval 'require PlackX::Framework::'.$module or die $@; # Load parent or die
+      my $loaded = eval 'require '.$caller.'::'.$module;    # Load subclass maybe
+      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
+        if !$loaded;
     }
-
-    # Create it
-    if (!$loaded{$module} and $modules{$module}->{auto_create_subclass}) {
-      generate_subclass($caller . '::' . $module => "PlackX::Framework::$module");
+    foreach my $module (optional_modules()) {
+      my $loaded = eval 'require '.$caller.'::'.$module;    # Load subclass maybe
+      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
+        if !$loaded and ($options{$module} or $options{':'.lc($module)} or $options{':all'});
     }
+    export_app_namespace($caller, $_) for (required_modules(), optional_modules());
+  }
 
-    # Verify required modules are loaded
-    if ($modules{$module}->{required}) {
-      die "Could not load or create required module $_" unless Module::Loaded::is_loaded($caller . '::' . $module);
+  # Export app() sub to the app's main package
+  sub export_app_sub ($destination_namespace) {
+    no strict 'refs';
+    *{$destination_namespace . '::app'} = sub ($class) {
+      state $handler_class = $class . '::Handler';
+      $handler_class->to_app;
     }
   }
 
-  export_app_sub($caller);
-}
+  # Export app_namespace() to App::Request, App::Response, etc.
+  sub export_app_namespace ($namespace, $module) {
+    no strict 'refs';
+    my $exists = eval $namespace.'::'.$module.'::app_namespace()';
+    die "app_namespace(): expected $namespace" if $exists and $exists ne $namespace;
+    *{$namespace.'::'.$module.'::app_namespace'} = sub { $namespace } unless $exists;
+  }
 
-sub export_app_sub {
-  my $destination_package = shift;
-  no strict 'refs';
-  *{$destination_package . '::app'} = sub {
-    my $class         = shift;
-    my $handler_class = $class . '::Handler';
-    $handler_class->to_app;
+  # Helper - Create a subclass and mark as loaded
+  sub generate_subclass ($new_class, $parent_class) {
+    eval qq{
+      package $new_class { use parent '$parent_class' }
+      return Module::Loaded::mark_as_loaded('$new_class');
+    } or die "Cannot create class: $@";
   }
 }
 
-sub load_subclass {
-  my $class   = shift;
-  my $module  = shift;
-  my $success = eval "require $class" . '::' . "$module; 1;";
-  return $success;
-}
-
-sub generate_subclass {
-  my ($new_class, $base_class) = @_;
-  eval qq{
-    package $new_class;
-    use parent '$base_class';
-    Module::Loaded::mark_as_loaded('$new_class');
-    1;
-  } or die $@;
-}
-
-1;
-__END__
+=pod
 
 =head1 NAME
 
-PlackX::Framework - A thin framework for Plack-based web apps.
+PlackX::Framework - A thin framework for PSGI/Plack web apps.
 
 
 =head1 SYNOPSIS
 
-This module is the root module for the PlackX::Framework web application
-framework. It is responsible for loading all of the related modules as well as
-the user's subclasses of these modules, creating empty subclasses of them if
-necessary.
-
-A simple PlackX::Framework application could be all in one .psgi file:
+This is a micro-framework for PSGI web apps, based on Plack. A simple
+PlackX::Framework application could be all in one .psgi file:
 
     # app.psgi
     package MyProject {
-      use PlackX::Framework; # use, NOT use 'parent'
-      use MyProject::Router; # exports `request', 'request_base', and 'filter'
-      request '/' => sub {
-         my ($request, $response) = @_;
+      use PlackX::Framework; # loads and sets up the framework and subclasses
+      use MyProject::Router; # exports router DSL
+      request '/' => sub ($request, $response) {
          $response->body('Hello, ', $request->param('name'));
          return $response;
       };
     }
     MyProject->app;
 
-However, a larger application would be typically laid out with separate modules
-in separate files, for example in MyProject::Controller::* modules. Each should
+A larger application would be typically laid out with separate modules in
+separate files, for example in MyProject::Controller::* modules. Each should
 use MyProject::Router if the DSL-style routing is desired.
 
 This software is considered to be in an experimental, "alpha" stage. Use at 
 your own risk.
 
-
 =head1 DESCRIPTION
 
-PlackX::Framework consists of the following modules:
+=head2 Overview and Required Components
+
+PlackX::Framework consists of the required modules:
 
 PlackX::Framework
 PlackX::Framework::Handler
@@ -127,32 +93,124 @@ PlackX::Framework::Request
 PlackX::Framework::Response
 PlackX::Framework::Router
 PlackX::Framework::Router::Engine
+
+And the following optional modules:
+
 PlackX::Framework::Template
-PlackX::Framework::URIX
+PlackX::Framework::URIx
 
 The statement "use PlackX::Framework" will automatically find and load all of
 the required modules. Then it will look for subclasses of the modules listed 
 above that exist in your namespace and load them, or create empty subclasses
-for any that do not exist. The following example
+for any required modules that do not exist. The following example
 
     package MyProject {
         use PlackX::Framework;
         # ...app logic here...
     }
 
-will attempt to load MyProject::Handler, MyProject::Request, MyProject::Response
-and so on, or create them if they do not exist.
+will attempt to load MyProject::Handler, MyProject::Request,
+MyProject::Response and so on, or create them if they do not exist.
+
+
+=head2 Optional Components
+
+The Template and URIx modules are included in the distribution, but loading
+them is optional - to save memory and compile time if they are not needed.
+Just as with the required modules, you can subclass them yourself, or you can
+automatically generate them like so:
+
+    package MyProject {
+        # Automagically generate MyProject::Template and ::URIx
+        use PlackX::Framework qw(Template URIx);
+
+        # Or automatically generate/load all optional modules
+        use PlackX::Framework qw(:all);
+    }
+
+To reiterate, the above is only necessary if you you do not have
+MyProject/{Optional Module}.pm in your @INC and want to automatically create
+them.
+
+
+=head2 The Pieces and How They Work Together
+
+=head3 PlackX::Framework
+
+PlackX::Framework is basically a management module, that is responsible for
+loading required and optional components. It exports one mandatory symbol,
+app(), to the calling package.
+
+=head3 PlackX::Framework::Handler
+
+PlackX::Framework::Handler is the package responsible for request processing.
+You would not normally have to subclass this module manually unless you would
+like to customize behavior of the framework.
+
+=head3 PlackX::Framework::Request
+=head3 PlackX::Framework::Response
 
 The PlackX::Framework::Request and PlackX::Framework::Response modules are
 subclasses of Plack::Request and Plack::Response sprinkled with additional
-features. See the documentation of those modules for details.
+features.
 
-The PlackX::Framework::URIx module is a subclass of URI::Fast, with some
-syntactic sugar.
+=item stash()
+
+Both feature a shared "stash" which is a hashref in which you can store any
+data you would like. The "stash" is not a user session but a way to
+temporarily store information during a request/response cycle. It is
+re-initialized for each cycle.
+
+=item flash()
+
+They also feature a "flash" cookie which you can use to store information on
+the user end for one cycle. It is automatically cleared in the following
+cycle. For example...
+
+    $response->flash('Goodbye!'); # Store message in a cookie
+
+On the next request:
+
+    $request->flash; # Returns 'Goodbye!'.
+
+During the response phase, the flash cookie is cleared, unless you set another
+one.
+
+=head3 PlackX::Framework::Router
+
+This module exports the request, request_base, and filter functions to give you
+a minimalistic web app controller DSL. You can import this into your main app
+package or separate controller packages.
+
+    # Set up the app
+    package MyApp {
+      use PlackX::Framework;
+      # You can also use MyApp::Router here...
+    }
+
+    # Note: the name of your controller module doesn't matter, but it must
+    # import from your subclass, e.g., MyApp::Router, not directly from
+    # PlackX::Framework::Router!
+    package MyApp::Controller {
+      use MyApp::Router;
+      request_base '/app';
+      request '/home' => sub {
+        ...
+      };
+      request { post => '/login' } => sub {
+        ...
+      };
+    }
+
+
+=head3 PlackX::Framework::Router::Engine
 
 The PlackX::Framework::Router::Engine is a subclass of Router::Boom with some
 extra convenience methods. Normally, you would not have to use this module
 directly. It is used by PlackX::Framework::Router internally.
+
+
+=head3 The PlackX::Framework::Template
 
 The PlackX::Framework::Template module can automatically load and set up
 Template Toolkit, offering several convenience methods. If you desire to use
@@ -161,7 +219,20 @@ necessary in your subclass. A new instance of this class is generated for
 each request by the app() method of PlackX::Framework::Handler.
 
 
-=head2 Why Another Framework?
+=head3 PlackX::Framework::URIx
+
+The optional PlackX::Framework::URIx module is a subclass of URI::Fast, with
+some syntactic sugar for manipulating query string. It is made available to
+your request objects through $request->urix (the x is to not confuse it
+with the Plack::Request uri method).
+
+
+=head3 PlackX::Framework::Util
+
+Mainly used internally.
+
+
+=head1 Why Another Framework?
 
 After converting a mod_perl2 web application to use Plack instead, where
 Plack::Request and Plack::Response replaced Apache2::Request and
@@ -222,6 +293,8 @@ subclassing, while using the framework will not.
 
 =head2 Configuration
 
+=head3 uri_prefix
+
 In your application's root namespace, you can set the base URL for requests
 by defining a uri_prefix subroutine.
 
@@ -244,11 +317,11 @@ automatically load and set up Template Toolkit if you:
 
     use MyProject::Template;
 
-(assuming MyProject has `use`d PlackX::Framework).
+(assuming MyProject has imported from PlackX::Framework).
 
 Note that this feature relies on the import() method of your app's
 PlackX::Framework::Template subclass being called (this subclass is also
-created automatically if you do not have a MyApp/Template.pm module).
+created automatically if you do not have a MyApp/Template.pm file).
 Therefore, the following will not load Template Toolkit:
 
     use MyApp::Template ();  # Template Toolkit is not loaded
