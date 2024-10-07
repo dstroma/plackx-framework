@@ -10,13 +10,9 @@ package PlackX::Framework::Template {
     return if $class->get_engine;
 
     # Setup Template Toolkit if available
-    try {
-      require Template;
-      $options->{'INCLUDE_PATH'} //= 'template';
-      $class->set_engine(Template->new($options));
-    } catch ($e) {
-      warn "Unable to load Template Toolkit: $e";
-    }
+    require Template;
+    $options->{'INCLUDE_PATH'} //= 'template';
+    $class->set_engine(Template->new($options));
   }
 
   sub new ($class, $response, $engine = undef) {

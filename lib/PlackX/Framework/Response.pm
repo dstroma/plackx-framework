@@ -1,7 +1,6 @@
 use v5.40;
 package PlackX::Framework::Response {
   use parent 'Plack::Response';
-  use JSON::MaybeXS qw(encode_json decode_json);
 
   # Simple accessors
   use Plack::Util::Accessor qw(stash cleanup_callbacks template);
@@ -37,10 +36,17 @@ package PlackX::Framework::Response {
   sub render_text ($self, $text) { $self->render_content('text/plain',       $text             ) }
   sub render_html ($self, $html) { $self->render_content('text/html',        $html             ) }
   sub render_template ($self)    { $self->{template}->render; $self }
+
   sub render_content ($self, $content_type, $body) {
     $self->status(200);
     $self->content_type($content_type);
     $self->body($body);
     return $self;
+  }
+
+  sub encode_json ($data) {
+    require JSON::MaybeXS;
+    state $json = JSON::MaybeXS->new(utf8 => 1);
+    return $json->encode($data);
   }
 }

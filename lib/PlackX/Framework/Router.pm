@@ -15,9 +15,8 @@ package PlackX::Framework::Router {
     $engines->{$export_to} = $class->engine;
 
     # Export
-    { no strict 'refs';
-      *{$export_to . '::' . $_} = \&{'DSL_'.$_} for qw(filter request request_base);
-    }
+    no strict 'refs';
+    *{$export_to . '::' . $_} = \&{'DSL_'.$_} for qw(filter request request_base);
   }
 
   sub engine ($class) {
