@@ -25,10 +25,7 @@ package PlackX::Framework::Request {
   sub reroute ($self, $dest) {
     my $routelist = $self->{reroutes} //= [$self->path_info];
     push @$routelist, ($self->{destination} = $dest);
-
-    croak "Excessive reroutes:\n" . join("\n", @$routelist)
-      if @$routelist > $self->max_reroutes;
-
+    croak "Excessive reroutes:\n" . join("\n", @$routelist) if @$routelist > $self->max_reroutes;
     return $self;
   }
 

@@ -38,11 +38,11 @@ package PlackX::Framework {
   sub export_app_namespace ($namespace, $module) {
     no strict 'refs';
     my $exists = eval $namespace.'::'.$module.'::app_namespace()';
-    die "app_namespace(): expected $namespace" if $exists and $exists ne $namespace;
+    die "app_namespace(): expected $namespace, got $exists" if $exists and $exists ne $namespace;
     *{$namespace.'::'.$module.'::app_namespace'} = sub { $namespace } unless $exists;
   }
 
-  # Helper - Create a subclass and mark as loaded
+  # Helper to create a subclass and mark as loaded
   sub generate_subclass ($new_class, $parent_class) {
     eval qq{
       package $new_class { use parent '$parent_class' }
