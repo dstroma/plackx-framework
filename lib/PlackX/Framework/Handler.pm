@@ -22,11 +22,15 @@ package PlackX::Framework::Handler {
     $response->stash($stash);
 
     # Maybe set up Templating, if loaded
-    eval {
-      my $template = ($app_namespace . '::Template')->new($response);
-      $template->set(REQUEST => $request, RESPONSE => $response);
-      $response->template($template);
-    } if is_loaded($app_namespace . '::Template');
+    if (is_loaded($app_namespace . '::Template')) {
+      try {
+        my $template = ($app_namespace . '::Template')->new($response);
+        $template->set(REQUEST => $request, RESPONSE => $response);
+        $response->template($template);
+      } catch ($e) {
+        warn "Unable to set up template: $e";
+      }
+    }
 
     # Clear flash if set, set response defaults
     $response->flash(undef);
