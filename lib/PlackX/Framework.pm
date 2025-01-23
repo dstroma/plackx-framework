@@ -28,9 +28,9 @@ package PlackX::Framework {
   # Export app() sub to the app's main package
   sub export_app_sub ($destination_namespace) {
     no strict 'refs';
-    *{$destination_namespace . '::app'} = sub ($class) {
+    *{$destination_namespace . '::app'} = sub ($class, @options) {
       state $handler_class = $class . '::Handler';
-      $handler_class->to_app;
+      $handler_class->to_app(@options);
     }
   }
 

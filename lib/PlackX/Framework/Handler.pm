@@ -4,7 +4,26 @@ package PlackX::Framework::Handler {
   use Module::Loaded qw(is_loaded);
 
   # Public class methods
-  sub to_app ($class)    { return sub ($env) { $class->handle_request($env) } }
+  sub to_app ($class, %options)  {
+    my $serve_static_files = delete $options{'serve_static_files'};
+    my $static_docroot     = delete $options{'static_docroot'};
+    die "Unknown options: " . join(', ', keys %options) if %options;
+
+    if ($serve_static_files) {
+      require Plack::App::File;
+      my $static_app = Plack::App::File->new(root => $static_docroot)->to_app;
+      return sub ($env) {
+        my $resp = $class->handle_request($env);
+        return $resp if $resp and $resp->[0] != 404;
+        return $static_app->($env);
+      };
+    } else {
+      return sub ($env) {
+        return $class->handle_request($env);
+      };
+    }
+  }
+
   sub not_found_response { [404, [], ['Not Found']]              }
   sub error_response     { [500, [], ['Internal Server Error']]  }
 
