@@ -14,7 +14,7 @@ package PlackX::Framework::Handler {
       my $static_app = Plack::App::File->new(root => $static_docroot)->to_app;
       return sub ($env) {
         my $resp = $class->handle_request($env);
-        return $resp if $resp and $resp->[0] != 404;
+        return $resp if $resp and ref $resp and $resp->[0] != 404;
         return $static_app->($env);
       };
     } else {
