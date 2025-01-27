@@ -44,7 +44,8 @@ package PlackX::Framework::Handler {
     if (is_loaded($app_namespace . '::Template')) {
       try {
         my $template = ($app_namespace . '::Template')->new($response);
-        $template->set(REQUEST => $request, RESPONSE => $response);
+        $template->set(_REQUEST => $request, _RESPONSE => $response);
+        $template->set(request  => $request, response  => $response);
         $response->template($template);
       } catch ($e) {
         warn "Unable to set up template: $e";
