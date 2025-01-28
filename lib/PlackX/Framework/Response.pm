@@ -49,4 +49,10 @@ package PlackX::Framework::Response {
     state $json = JSON::MaybeXS->new(utf8 => 1);
     return $json->encode($data);
   }
+
+  sub global ($class, @args) {
+    state $global;
+    $global = shift @args if @args;
+    return $global;
+  }
 }

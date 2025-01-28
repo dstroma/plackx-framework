@@ -36,4 +36,10 @@ package PlackX::Framework::Request {
     $urix_class = 'PlackX::Framework::URIx' unless is_loaded($urix_class) or eval "require $urix_class; 1";
     return $urix_class->new_from_request($self);
   }
+
+  sub global ($class, @args) {
+    state $global;
+    $global = shift @args if @args;
+    return $global;
+  }
 }

@@ -35,6 +35,9 @@ package PlackX::Framework::Handler {
     my $request  = $class->env_or_req_to_req($env_or_req);
     my $response = $maybe_resp || ($app_namespace . '::Response')->new(200);
 
+    PlackX::Framework::Request->global($request);
+    PlackX::Framework::Response->global($response);
+
     # Set up stash
     my $stash = ($request->stash or $response->stash or {});
     $request->stash($stash);

@@ -24,7 +24,8 @@ package PlackX::Framework::Template {
     return bless { engine => $engine, params => {}, response => $response }, $class;
   }
 
-  sub output ($self, $file = undef) {
+  sub output ($self, $file = undef, $params = undef) {
+    $self->set_params(%$params) if $params and ref $params and ref $params eq 'HASH';
     $file //= $self->{filename};
     $self->{engine}->process($file, $self->{params}, $self->{response}) || die 'Template error: '.$self->{engine}->error;
   }
