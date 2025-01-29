@@ -50,9 +50,9 @@ package PlackX::Framework::Response {
     return $json->encode($data);
   }
 
-  sub global ($class, @args) {
-    state $global;
-    $global = shift @args if @args;
-    return $global;
+  sub INIT_RESPONSE ($class, @args) {
+    state $r;
+    $r = shift @args if @args;
+    return $r;
   }
 }
