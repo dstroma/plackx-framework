@@ -37,9 +37,10 @@ package PlackX::Framework::Request {
     return $urix_class->new_from_request($self);
   }
 
-  sub INIT_REQUEST ($class, @args) {
-    state $r;
-    $r = shift @args if @args;
-    return $r;
+  sub GlobalRequest ($class, @args) {
+    $class = ref $class if ref $class;
+    state $request_objects = {};
+    $request_objects->{$class} = shift @args if @args;
+    $request_objects->{$class};
   }
 }

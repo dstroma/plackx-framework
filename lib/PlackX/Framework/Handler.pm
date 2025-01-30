@@ -3,6 +3,11 @@ package PlackX::Framework::Handler {
   use Scalar::Util qw(blessed);
   use Module::Loaded qw(is_loaded);
 
+  # Overridable options
+  sub use_global_request_response { }
+  sub global_prefilters  { }
+  sub global_postfilters { }
+
   # Public class methods
   sub to_app ($class, %options)  {
     my $serve_static_files = delete $options{'serve_static_files'};
@@ -13,9 +18,12 @@ package PlackX::Framework::Handler {
       require Plack::App::File;
       my $static_app = Plack::App::File->new(root => $static_docroot)->to_app;
       return sub ($env) {
-        my $resp = $class->handle_request($env);
-        return $resp if $resp and ref $resp and $resp->[0] != 404;
-        return $static_app->($env);
+        # Note: If both are 404, prefer to serve app's 404 rather than Plack::App::File's
+        my $apps_resp = $class->handle_request($env);
+        return $apps_resp if ref $apps_resp and $apps_resp->[0] != 404;
+        my $file_resp = $static_app->($env);
+        return $file_resp if ref $file_resp and $file_resp->[0] != 404;
+        return $apps_resp;
       };
     } else {
       return sub ($env) {
@@ -35,8 +43,11 @@ package PlackX::Framework::Handler {
     my $request  = $class->env_or_req_to_req($env_or_req);
     my $response = $maybe_resp || ($app_namespace . '::Response')->new(200);
 
-    PlackX::Framework::Request->INIT_REQUEST($request);
-    PlackX::Framework::Response->INIT_RESPONSE($response);
+    # Maybe save global env, request, response
+    if ($class->use_global_request_response) {
+      $request->GlobalRequest($request);
+      $response->GlobalResponse($response);
+    }
 
     # Set up stash
     my $stash = ($request->stash or $response->stash or {});
@@ -70,9 +81,11 @@ package PlackX::Framework::Handler {
     if (my $match = $rt_engine->match($request)) {
       $request->route_parameters($match);
 
-      # Execute prefilters
-      my $prefilter_result = execute_filters($match->{prefilters}, $request, $response);
-      return finalized_response($prefilter_result) if $prefilter_result and is_valid_response($prefilter_result);
+      # Execute global and route-specific prefilters
+      for my $filterset ($class->global_prefilters, $match->{prefilters}) {
+        my $ret = execute_filters($filterset, $request, $response);
+        return finalized_response($ret) if $ret and is_valid_response($ret);
+      }
 
       # Execute main action
       my $result = $match->{action}->($request, $response);
@@ -87,8 +100,10 @@ package PlackX::Framework::Handler {
       $response = $result;
 
       # Execute postfilters
-      my $postfilter_result = execute_filters($match->{postfilters}, $request, $response);
-      return finalized_response($postfilter_result) if $postfilter_result and is_valid_response($postfilter_result);
+      for my $filterset ($class->global_postfilters, $match->{postfilters}) {
+        my $ret = execute_filters($filterset, $request, $response);
+        return finalized_response($ret) if $ret and is_valid_response($ret);
+      }
 
       # Clean up (does server support cleanup handlers? Add to list or else execute now)
       if ($response->cleanup_callbacks and scalar $response->cleanup_callbacks->@* > 0) {
