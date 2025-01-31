@@ -2,16 +2,14 @@ use v5.40;
 package PlackX::Framework::Response {
   use parent 'Plack::Response';
 
-  # Simple accessors
+  # Simple accessors and simple methods
   use Plack::Util::Accessor qw(stash cleanup_callbacks template);
-
   sub is_request        { 0     }
   sub is_response       { 1     }
   sub continue          { undef }
   sub stop              { $_[0] }
   sub flash_cookie_name { PlackX::Framework::Request::flash_cookie_name(shift) }
   sub print ($self, @lines)              { push @{$self->{body}}, @lines; $self     }
-  sub redirect ($self, @args)            { $self->SUPER::redirect(@args);  $self    }
   sub add_cleanup_callback ($self, $sub) { push @{$self->{cleanup_callbacks}}, $sub }
 
   sub new ($class, @args) {
@@ -19,6 +17,40 @@ package PlackX::Framework::Response {
     $self->{cleanup_callbacks} //= [];
     $self->{body}              //= [];
     return bless $self, $class;
+  }
+
+  sub redirect ($self, @args) {
+    if (@args) {
+      my $url = shift @args;
+      $url = $self->add_prefix_to_url($$url) if ref $url;
+      $url = $self->maybe_add_base_to_url($url);
+      unshift @args, $url;
+    }
+
+    $self->SUPER::redirect(@args);
+    return $self;
+  }
+
+  sub add_prefix_to_url ($self, $url) {
+    if ($self->app_namespace->can('uri_prefix')) {
+      my $prefix = $self->app_namespace->uri_prefix;
+      $prefix = substr($prefix, 0, length $prefix - 1) if substr($prefix, -1, 1) eq '/';
+      $url = substr($url, 1) if substr($url, 0, 1) eq '/';
+      $url = join('/', $self->app_namespace->uri_prefix, $url);
+    }
+    if ($url !~ m`://` and my $request = ($self->stash->{REQUEST} || $self->GlobalRequest)) {
+      $url = substr($url, 1) if substr($url, 0, 1) eq '/';
+      $url = $request->base . $url;
+    }
+    return $url;
+  }
+
+  sub maybe_add_base_to_url ($self, $url) {
+    if ($url !~ m`://` and my $request = ($self->stash->{REQUEST} || $self->GlobalRequest)) {
+      $url = substr($url, 1) if substr($url, 0, 1) eq '/';
+      $url = $request->base . $url;
+    }
+    return $url;
   }
 
   sub no_cache ($self, $bool) {
@@ -53,12 +85,5 @@ package PlackX::Framework::Response {
     require JSON::MaybeXS;
     state $json = JSON::MaybeXS->new(utf8 => 1);
     return $json->encode($data);
-  }
-
-  sub GlobalResponse ($class, @args) {
-    $class = ref $class if ref $class;
-    state $response_objects = {};
-    $response_objects->{$class} = shift @args if @args;
-    $response_objects->{$class};
   }
 }

@@ -43,23 +43,18 @@ package PlackX::Framework::Handler {
     my $request  = $class->env_or_req_to_req($env_or_req);
     my $response = $maybe_resp || ($app_namespace . '::Response')->new(200);
 
-    # Maybe save global env, request, response
-    if ($class->use_global_request_response) {
-      $request->GlobalRequest($request);
-      $response->GlobalResponse($response);
-    }
-
     # Set up stash
     my $stash = ($request->stash or $response->stash or {});
     $request->stash($stash);
     $response->stash($stash);
+    $stash->{REQUEST}  = $request;
+    $stash->{RESPONSE} = $response;
 
     # Maybe set up Templating, if loaded
     if (is_loaded($app_namespace . '::Template')) {
       try {
         my $template = ($app_namespace . '::Template')->new($response);
-        $template->set(_REQUEST => $request, _RESPONSE => $response);
-        $template->set(request  => $request, response  => $response);
+        $template->set(STASH => $stash, REQUEST => $request, RESPONSE => $response);
         $response->template($template);
       } catch ($e) {
         warn "Unable to set up template: $e";
@@ -136,6 +131,7 @@ package PlackX::Framework::Handler {
   sub execute_filters ($filters, $request, $response) {
     return unless $filters and ref $filters eq 'ARRAY';
     foreach my $filter (@$filters) {
+      $filter = { action => $filter, params => [] } if ref $filter eq 'CODE';
       my $response = $filter->{action}->($request, $response, @{$filter->{params}});
       return $response if $response and is_valid_response($response);
     }

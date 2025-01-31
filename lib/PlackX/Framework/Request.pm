@@ -16,7 +16,7 @@ package PlackX::Framework::Request {
   sub is_delete ($self) { uc $self->method eq 'DELETE' }
   sub is_ajax   ($self) { uc($self->header('X-Requested-With') || '') eq 'XMLHTTPREQUEST' }
   sub destination ($self)        { $self->{destination} // $self->path_info        }
-  sub sparam ($self, $key)       { scalar $self->parameters->{$key}                }
+  sub sparam ($self, $key)       { scalar $self->parameters->{$key}                } # todo, bench this vs. scalar $self->param($key)
   sub route_param ($self, $name) { $self->{route_parameters}{$name}                }
   sub flash_cookie_name ($self)  { 'flash' . url_crypt($self->app_namespace, '--') }
   sub flash ($self)              { $self->cookies->{$self->flash_cookie_name}      }
@@ -35,12 +35,5 @@ package PlackX::Framework::Request {
     my $urix_class = $self->app_namespace . '::URIx';
     $urix_class = 'PlackX::Framework::URIx' unless is_loaded($urix_class) or eval "require $urix_class; 1";
     return $urix_class->new_from_request($self);
-  }
-
-  sub GlobalRequest ($class, @args) {
-    $class = ref $class if ref $class;
-    state $request_objects = {};
-    $request_objects->{$class} = shift @args if @args;
-    $request_objects->{$class};
   }
 }
