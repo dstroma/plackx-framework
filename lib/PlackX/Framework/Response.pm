@@ -27,9 +27,14 @@ package PlackX::Framework::Response {
   }
 
   sub flash ($self, $value //= '') {
+    # Values are automatically encoded by Cookie::Baker
     my $max_age = $value ? 300 : -1; # If value is false we delete the cookie
     $self->cookies->{flash_cookie_name($self)} = { value=>$value, path=>'/', 'max-age'=>$max_age };
     return $self;
+  }
+
+  sub flash_redirect ($self, $flashval, $url) {
+    return $self->flash($flashval)->redirect($url, 303);
   }
 
   sub render_json ($self, $data)     { $self->render_content('application/json', encode_json($data)) }

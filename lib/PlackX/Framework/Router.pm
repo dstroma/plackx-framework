@@ -39,8 +39,21 @@ package PlackX::Framework::Router {
     return;
   }
 
-  sub DSL_request ($routespec, $action) {
+  sub DSL_request (@args) {
     my ($package) = caller;
+    my $action    = pop @args;
+    my $routespec = shift @args;
+
+    die 'expected coderef as last argument'
+      unless ref $action and ref $action eq 'CODE';
+
+    if (@args) {
+      my $verb   = $routespec;
+      $routespec = shift @args;
+      die 'incorrect usage' if ref $routespec;
+      $routespec  = { $verb => $routespec };
+    }
+
     $engines->{$package}->add_route(
       routespec   => $routespec,
       base        => $bases->{$package},
@@ -114,6 +127,9 @@ request '/index' => sub {
   ...
   $template->render_index;
 };
+
+request get => '/default' => sub { }
+request post => '/form'   => sub { }
 
 request {get => '/login'} => sub {
   # show login form
