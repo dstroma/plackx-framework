@@ -44,8 +44,8 @@ package PlackX::Framework::Router {
     my $action    = pop @args;
     my $routespec = shift @args;
 
-    die 'expected coderef as last argument'
-      unless ref $action and ref $action eq 'CODE';
+    die 'expected coderef or hash as last argument'
+      unless ref $action and (ref $action eq 'CODE' or ref $action eq 'HASH');
 
     if (@args) {
       my $verb   = $routespec;
@@ -97,6 +97,12 @@ package PlackX::Framework::Router {
     if (not ref $action) {
       $action = ($action =~ m/::/) ?
         \&{ $action } : \&{ $package . '::' . $action };
+    } elsif (ref $action and ref $action eq 'HASH') {
+        if (my $template = $action->{template}) {
+          $action = sub ($request, $response) { $response->template->render($template) };
+        } else {
+          die 'unknown action specification';
+        }
     }
     return $action;
   }
