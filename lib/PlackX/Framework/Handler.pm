@@ -62,7 +62,7 @@ package PlackX::Framework::Handler {
     }
 
     # Clear flash if set, set response defaults
-    $response->flash(undef);
+    $response->flash(undef) if $request->flash;
     $response->content_type('text/html');
 
     return $class->route_request($request, $response);
