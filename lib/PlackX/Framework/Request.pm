@@ -18,6 +18,7 @@ package PlackX::Framework::Request {
   sub destination ($self)        { $self->{destination} // $self->path_info        }
   sub sparam ($self, $key)       { scalar $self->parameters->{$key}                } # todo, bench this vs. scalar $self->param($key)
   sub route_param ($self, $name) { $self->{route_parameters}{$name}                }
+  sub stash_param ($self, $name) { $self->{stash}{$name}                           }
   sub flash_cookie_name ($self)  { 'flash' . url_crypt($self->app_namespace, '--') }
   sub flash ($self)              { $self->cookies->{$self->flash_cookie_name}      }
   sub url_crypt ($d, $s)         { my $h = crypt($d, $s); $h =~ tr`./`-_`; $h      }
