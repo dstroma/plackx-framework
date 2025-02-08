@@ -172,4 +172,6 @@ request {get => ['/path1', '/path2']} => sub {
 
 };
 
+request 'get|post' => '/somewhere' => sub {};
+
 

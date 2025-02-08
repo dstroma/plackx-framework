@@ -51,7 +51,7 @@ package PlackX::Framework::Router::Engine {
   }
 
   sub path_with_method ($path, $method = undef) {
-    # $method can be undef, http verb, or verbs separated with | (e.g. 'get|post')
+    # $method can be undef, http verb, or verbs separated with pipe (e.g. 'get|post')
     if ($method) {
       if ($method =~ m/|/) {
         $method = '/[{REQUEST_METHOD:' . uc $method . '}]';
