@@ -1,112 +1,40 @@
-use 5.10.0;
-use strict;
-use warnings;
+use v5.40;
+package PlackX::Framework::Request {
+  use parent 'Plack::Request';
+  use Carp qw(croak);
+  use Module::Loaded qw(is_loaded);
 
-package PlackX::Framework::Request;
-use parent 'Plack::Request';
-use Try::Tiny;
-use Carp qw(croak);
-use Digest::MD5 qw(md5_base64);
+  # Simple accessors
+  use Plack::Util::Accessor qw(stash route_parameters);
 
-sub max_reroutes { 100 }
-sub is_request   {   1 }
-sub is_response  {   0 }
-sub is_get       { uc shift->method eq 'GET'    }
-sub is_post      { uc shift->method eq 'POST'   }
-sub is_put       { uc shift->method eq 'PUT'    }
-sub is_delete    { uc shift->method eq 'DELETE' }
-sub is_ajax      { uc shift->header('X-Requested-With') eq 'XMLHTTPREQUEST' }
+  sub max_reroutes      { 16 }
+  sub is_request        { 1 }
+  sub is_response       { 0 }
+  sub is_get    ($self) { uc $self->method eq 'GET'    }
+  sub is_post   ($self) { uc $self->method eq 'POST'   }
+  sub is_put    ($self) { uc $self->method eq 'PUT'    }
+  sub is_delete ($self) { uc $self->method eq 'DELETE' }
+  sub is_ajax   ($self) { uc($self->header('X-Requested-With') || '') eq 'XMLHTTPREQUEST' }
+  sub destination ($self)        { $self->{destination} // $self->path_info        }
+  sub sparam ($self, $key)       { scalar $self->parameters->{$key}                } # todo, bench this vs. scalar $self->param($key)
+  sub route_param ($self, $name) { $self->{route_parameters}{$name}                }
+  sub stash_param ($self, $name) { $self->{stash}{$name}                           }
+  sub flash_cookie_name ($self)  { 'flash' . url_crypt($self->app_namespace, '--') }
+  sub flash ($self)              { $self->cookies->{$self->flash_cookie_name}      }
+  sub url_crypt ($d, $s)         { my $h = crypt($d, $s); $h =~ tr`./`-_`; $h      }
 
-# Override Plack::Request->uri so we can use our subclass of URI::Fast
-sub uri {
-  my $self = shift;
-
-  # The URI module is optional, so only load it on demand
-  require PlackX::Framework::URI;
-  my $uri_class = $self->app_class . '::URI';
-  $uri_class = 'PlackX::Framework::URI' unless try { require $uri_class; 1 };
-
-  # Copied from uri method of Plack::Request
-  my $base = $self->_uri_base;
-  my $path_escape_class = q{^/;:@&=A-Za-z0-9\$_.+!*'(),-};
-  my $path = URI::Escape::uri_escape($self->env->{PATH_INFO} || '', $path_escape_class);
-  $path .= '?' . $self->env->{QUERY_STRING}
-      if defined $self->env->{QUERY_STRING} && $self->env->{QUERY_STRING} ne '';
-  $base =~ s!/$!! if $path =~ m!^/!;
-  # End copy
- 
-  return $uri_class->new($base . $path)->normalize;
-}
-
-sub destination {
-  my $self = shift;
-  $self->{destination} || $self->path_info;
-}
-
-sub reroute {
-  my $self = shift;
-  my $dest = shift;
-  $self->{'plackx.framework.reroute_count'} ||= 0;
-  $self->{'plackx.framework.reroute_count'}  += 1;
-  $self->{'plackx.framework.reroutes'}      //= [$self->path_info];
-  push @{  $self->{'plackx.framework.reroutes'}  }, $dest;
-
-  # Protect against recusrive reroutes
-  my $max_reroutes = $self->max_reroutes;
-  if ($self->{'plackx.framework.reroute_count'} > $max_reroutes) {
-    croak "Maximum number of reroutes $max_reroutes exceeded. Routes oldest to newest are:\n"
-    . join("\n", @{  $self->{'plackx.framework.reroutes'}  })
-    . "\n";
+  sub reroute ($self, $dest) {
+    my $routelist = $self->{reroutes} //= [$self->path_info];
+    push @$routelist, ($self->{destination} = $dest);
+    croak "Excessive reroutes:\n" . join("\n", @$routelist) if @$routelist > $self->max_reroutes;
+    return $self;
   }
 
-  $self->{destination} = $dest;
-  return $self;
+  sub urix ($self) {
+    # The URI module is optional, so only load it on demand
+    require PlackX::Framework::URIx;
+    my $urix_class = $self->app_namespace . '::URIx';
+    $urix_class = 'PlackX::Framework::URIx' unless is_loaded($urix_class) or eval "require $urix_class; 1";
+    return $urix_class->new_from_request($self);
+  }
 }
-
-sub app_class {
-  my $self = shift;
-  $self->{app_class};
-}
-
-sub set_app_class {
-  my $self = shift;
-  my $new  = shift;
-  $self->{app_class} = $new;
-}
-
-sub stash {
-  my $self = shift;
-  $self->{stash};
-}
-
-sub set_stash {
-  my $self  = shift;
-  my $stash = shift;
-  $self->{stash} = $stash;
-}
-
-sub route_param {
-  my $self = shift;
-  my $name = shift;
-  return $self->{route_parameters}{$name};
-}
-
-sub route_parameters {
-  my $self = shift;
-  $self->{route_parameters};
-}
-
-sub set_route_parameters {
-  my $self = shift;
-  my $new  = shift;
-  $self->{route_parameters} = $new;
-}
-
-sub flash {
-  my $self   = shift;
-  my $cname  = 'flash' . md5_base64($self->app_class);
-  $self->cookies->{$cname};
-}
-
-1;
-

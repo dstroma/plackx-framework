@@ -1,3 +1,4 @@
+use v5.10;
 use strict;
 use warnings;
 
@@ -6,11 +7,26 @@ use Try::Tiny;
 use feature 'say';
 our $verbose = 0;
 
-test('PlackX::Framework::URI::Standard');
-test('PlackX::Framework::URI::Fast');
+my $uri_fast_available = try {
+	require URI::Fast;
+	1;
+};
 
-sub test {
-	my $class   = shift;
+if ($uri_fast_available) {
+	run_tests('PlackX::Framework::URIx');
+} else {
+	use_ok('PlackX::Framework::URIx');
+	my $new_ok = try {
+		my $uri = PlackX::Framework::URIx->new('http://www.google.com/');
+		1;
+	};
+	ok(!$new_ok, 'URI::Fast not available, so new() causes fatal error');
+}
+
+done_testing();
+
+sub run_tests {
+	my $class = shift;
 
 	use_ok($class);
 
@@ -48,8 +64,6 @@ sub test {
 	ok($uri !~ m/car/ && $uri !~ m/carnival/ && $uri !~ m/cart/ && $uri =~ m/art=painting/ && $uri =~ m/val=value/, 'Delete values starting with a string');
 	say $uri if $verbose;
 }
-
-done_testing();
 
 __END__
 

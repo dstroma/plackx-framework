@@ -8,4 +8,4 @@ lib/PlackX/Framework/Request.pm
 lib/PlackX/Framework/Response.pm
 lib/PlackX/Framework/Router.pm
 lib/PlackX/Framework/Template.pm
-lib/PlackX/Framework/URI.pm
+lib/PlackX/Framework/URIx.pm
