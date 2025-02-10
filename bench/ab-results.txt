@@ -1,0 +1,65 @@
+RESULTS
+    Requests per second:
+        PlackX::Framework:  1451
+        Mojolicious::Lite:   702
+        Dancer2:             908
+        Dancer2 Builtin:    1165
+
+METHODOLOGY
+    $ plackup app_mojolite.pl
+    $ plackup app_dancer.pl
+    $ plackup app_plackx.pl
+
+    $ ab -n 10000 -c 1 http://127.0.0.1:5000/boo
+
+RAW DATA
+    DR2:
+        Server Software:        HTTP::Server::PSGI
+        Server Hostname:        127.0.0.1
+        Server Port:            5000
+        Document Path:          /boo
+        Document Length:        9 bytes
+        Concurrency Level:      1
+        Time taken for tests:   11.011 seconds
+        Complete requests:      10000
+        Failed requests:        0
+        Total transferred:      1800000 bytes
+        HTML transferred:       90000 bytes
+        Requests per second:    908.18 [#/sec] (mean)
+        Time per request:       1.101 [ms] (mean)
+        Time per request:       1.101 [ms] (mean, across all concurrent requests)
+        Transfer rate:          159.64 [Kbytes/sec] received
+
+    MJL:
+        Server Software:        HTTP::Server::PSGI
+        Server Hostname:        127.0.0.1
+        Server Port:            5000
+        Document Path:          /boo
+        Document Length:        15 bytes
+        Concurrency Level:      1
+        Time taken for tests:   14.230 seconds
+        Complete requests:      10000
+        Failed requests:        0
+        Total transferred:      1950000 bytes
+        HTML transferred:       150000 bytes
+        Requests per second:    702.72 [#/sec] (mean)
+        Time per request:       1.423 [ms] (mean)
+        Time per request:       1.423 [ms] (mean, across all concurrent requests)
+        Transfer rate:          133.82 [Kbytes/sec] received
+
+    PXF:
+        Server Software:        HTTP::Server::PSGI
+        Server Hostname:        127.0.0.1
+        Server Port:            5000
+        Document Path:          /boo
+        Document Length:        14 bytes
+        Concurrency Level:      1
+        Time taken for tests:   6.890 seconds
+        Complete requests:      10000
+        Failed requests:        0
+        Total transferred:      1430000 bytes
+        HTML transferred:       140000 bytes
+        Requests per second:    1451.44 [#/sec] (mean)
+        Time per request:       0.689 [ms] (mean)
+        Time per request:       0.689 [ms] (mean, across all concurrent requests)
+        Transfer rate:          202.69 [Kbytes/sec] received
