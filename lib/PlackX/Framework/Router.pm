@@ -48,7 +48,8 @@ package PlackX::Framework::Router {
       unless ref $action and (ref $action eq 'CODE' or ref $action eq 'HASH');
 
     if (@args) {
-      my $verb   = $routespec;
+      my $verb = $routespec;
+      $verb    = join('|', @$verb) if ref $verb;
       $routespec = shift @args;
       die 'incorrect usage' if ref $routespec;
       $routespec  = { $verb => $routespec };

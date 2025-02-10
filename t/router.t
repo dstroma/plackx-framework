@@ -25,11 +25,12 @@ package My::Test::Controller {
     request post => '/post-only' => sub { };
     request 'get|post|put' => '/getpostput' => sub {};
     request 'delete|post|put' => '/deletepostput' => sub {};
+    request [qw(patch pick pluck)] => '/pverb' => sub {};
 
     request_base '/app';
     request '/article/:article' => sub { };
     1;
-  });
+  }); warn $@ if $@;
 
   # Invalid
   ok(not eval q{
