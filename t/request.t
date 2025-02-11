@@ -50,9 +50,9 @@ package MyExample::Request {
   # Params
   ok(my $food = $request->param('food') eq 'pizza');
   ok(my $drink = $request->param('drink') =~ m/^(beer|pepsi|wine|water)$/);
-  my @drinks = $request->param('drink');
+  my @drinks = $request->cgi_param('drink');
   ok(@drinks == 4);
-  my @sdrinks = $request->sparam('drink');
+  my @sdrinks = $request->param('drink');
   ok(@sdrinks == 1);
 
   # Todo - flash cookie test

@@ -4,9 +4,9 @@ package PlackX::Framework::Request {
   use Carp qw(croak);
   use Module::Loaded qw(is_loaded);
 
-  # Simple accessors
-  use Plack::Util::Accessor qw(stash route_parameters);
-
+  use Plack::Util::Accessor qw(
+    stash route_parameters
+  );
   sub max_reroutes      { 16 }
   sub is_request        { 1 }
   sub is_response       { 0 }
@@ -16,7 +16,8 @@ package PlackX::Framework::Request {
   sub is_delete ($self) { uc $self->method eq 'DELETE' }
   sub is_ajax   ($self) { uc($self->header('X-Requested-With') || '') eq 'XMLHTTPREQUEST' }
   sub destination ($self)        { $self->{destination} // $self->path_info        }
-  sub sparam ($self, $key)       { scalar $self->parameters->{$key}                } # todo, bench this vs. scalar $self->param($key)
+  sub param ($self, $key)        { scalar $self->parameters->{$key}                } # faster than scalar $self->param($key)
+  sub cgi_param ($self, $key)    { $self->SUPER::param($key)                       } # CGI.pm compatibility
   sub route_param ($self, $name) { $self->{route_parameters}{$name}                }
   sub stash_param ($self, $name) { $self->{stash}{$name}                           }
   sub flash_cookie_name ($self)  { 'flash' . url_crypt($self->app_namespace, '--') }
