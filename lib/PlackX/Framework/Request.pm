@@ -4,10 +4,7 @@ package PlackX::Framework::Request {
   use Carp qw(croak);
   use Module::Loaded qw(is_loaded);
 
-  use Plack::Util::Accessor qw(
-    stash
-    route_parameters
-  );
+  use Plack::Util::Accessor qw(stash route_parameters);
   sub max_reroutes      { 16 }
   sub is_request        { 1 }
   sub is_response       { 0 }
@@ -24,6 +21,11 @@ package PlackX::Framework::Request {
   sub flash_cookie_name ($self)  { 'flash' . url_crypt($self->app_namespace, '--') }
   sub flash ($self)              { $self->cookies->{$self->flash_cookie_name}      }
   sub url_crypt ($d, $s)         { my $h = crypt($d, $s); $h =~ tr`./`-_`; $h      }
+
+  sub GlobalRequest ($class) {
+    my $handler_class = $class->app_namespace . '::Handler';
+    return $handler_class->global_request;
+  }
 
   sub reroute ($self, $dest) {
     my $routelist = $self->{reroutes} //= [$self->path_info];

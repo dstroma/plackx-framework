@@ -19,6 +19,11 @@ package PlackX::Framework::Response {
     return bless $self, $class;
   }
 
+  sub GlobalResponse ($class) {
+    my $handler_class = $class->app_namespace . '::Handler';
+    return $handler_class->global_response;
+  }
+
   sub redirect ($self, @args) {
     if (@args) {
       my $url = shift @args;

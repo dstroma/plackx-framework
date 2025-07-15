@@ -4,9 +4,14 @@ package PlackX::Framework::Handler {
   use Module::Loaded qw(is_loaded);
 
   # Overridable options
-  sub use_global_request_response { }
-  sub global_prefilters  { }
-  sub global_postfilters { }
+  my %globals;
+  sub use_global_request_response { } # Override in subclass to turn on
+  sub global_prefilters           { } # Override in subclass
+  sub global_postfilters          { } # Override in subclass
+  sub global_request     ($class) { $globals{$class->app_namespace}->[0] }
+  sub global_response    ($class) { $globals{$class->app_namespace}->[1] }
+  sub not_found_response          { [404, [], ['Not Found']]                 }
+  sub error_response              { [500, [], ['Internal Server Error']]     }
 
   # Public class methods
   sub to_app ($class, %options)  {
@@ -32,9 +37,6 @@ package PlackX::Framework::Handler {
     }
   }
 
-  sub not_found_response { [404, [], ['Not Found']]              }
-  sub error_response     { [500, [], ['Internal Server Error']]  }
-
   sub handle_request ($class, $env_or_req, $maybe_resp = undef) {
     my $app_namespace = $class->app_namespace;
 
@@ -42,6 +44,10 @@ package PlackX::Framework::Handler {
     my $env      = $class->env_or_req_to_env($env_or_req);
     my $request  = $class->env_or_req_to_req($env_or_req);
     my $response = $maybe_resp || ($app_namespace . '::Response')->new(200);
+
+    # Maybe set globals
+    $globals{$app_namespace} = [$request, $response]
+      if $class->use_global_request_response;
 
     # Set up stash
     my $stash = ($request->stash or $response->stash or {});
@@ -89,7 +95,7 @@ package PlackX::Framework::Handler {
         return $class->error_response;
       }
 
-      # Check if the "response" is actually another "request" (despite the variable name)
+      # Check if the result is actually another request object
       return $class->handle_request($result) if $result->is_request;
       return $class->error_response unless $result->is_response;
       $response = $result;
