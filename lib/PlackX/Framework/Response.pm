@@ -46,7 +46,9 @@ package PlackX::Framework::Response {
   }
 
   sub maybe_add_base_to_url ($self, $url) {
-    if ($url !~ m`://` and my $request = ($self->stash->{REQUEST} || $self->GlobalRequest)) {
+    warn "maybe_add_base_to_url is inop";
+    return $url;
+    if ($url !~ m`://` and my $request = (($self->stash && $self->stash->{REQUEST}) || $self->GlobalRequest)) {
       $url = substr($url, 1) if substr($url, 0, 1) eq '/';
       $url = $request->base . $url;
     }

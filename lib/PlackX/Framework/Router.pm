@@ -99,8 +99,23 @@ package PlackX::Framework::Router {
       $action = ($action =~ m/::/) ?
         \&{ $action } : \&{ $package . '::' . $action };
     } elsif (ref $action and ref $action eq 'HASH') {
+        # TODO: Make convenience methods in Response class to shorten these
         if (my $template = $action->{template}) {
-          $action = sub ($request, $response) { $response->template->render($template) };
+          $action = sub ($request, $response) {
+            $response->template->render($template);
+          };
+        } elsif (my $text = $action->{text}) {
+          $action = sub ($request, $response) {
+            $response->content_type('text/plain');
+            $response->body($text);
+            return $response;
+          };
+        } elsif (my $html = $action->{html}) {
+          $action = sub ($request, $response) {
+            $response->content_type('text/html');
+            $response->body($html);
+            return $response;
+          };
         } else {
           die 'unknown action specification';
         }
