@@ -60,7 +60,7 @@ PlackX::Framework - A thin framework for PSGI/Plack web apps.
 
 =head1 SYNOPSIS
 
-This is a micro-framework for PSGI web apps, based on Plack. A simple
+This is a small framework for PSGI web apps, based on Plack. A simple
 PlackX::Framework application could be all in one .psgi file:
 
     # app.psgi
@@ -78,8 +78,8 @@ A larger application would be typically laid out with separate modules in
 separate files, for example in MyProject::Controller::* modules. Each should
 use MyProject::Router if the DSL-style routing is desired.
 
-This software is considered to be in an experimental, "alpha" stage. Use at 
-your own risk.
+This software is considered to be in an experimental, "alpha" stage.
+
 
 =head1 DESCRIPTION
 
@@ -112,25 +112,27 @@ for any required modules that do not exist. The following example
 will attempt to load MyProject::Handler, MyProject::Request,
 MyProject::Response and so on, or create them if they do not exist.
 
+You only use, not inherit from, PlackX::Framework. However, your
+::Handler, ::Request, ::Response, etc. classes should inherit from
+PlackX::Framework::Handler, ::Request, ::Response, and so on.
+
 
 =head2 Optional Components
 
 The Template and URIx modules are included in the distribution, but loading
 them is optional - to save memory and compile time if they are not needed.
 Just as with the required modules, you can subclass them yourself, or you can
-automatically generate them like so:
+have them automatically generated.
 
     package MyProject {
         # Automagically generate MyProject::Template and ::URIx
         use PlackX::Framework qw(Template URIx);
-
-        # Or automatically generate/load all optional modules
-        use PlackX::Framework qw(:all);
     }
 
-To reiterate, the above is only necessary if you you do not have
-MyProject/{Optional Module}.pm in your @INC and want to automatically create
-them.
+To load/generate all optional modules, use the :all tag in your use statement.
+
+    use PlackX::Framework qw(:all);
+
 
 
 =head2 The Pieces and How They Work Together
@@ -138,14 +140,16 @@ them.
 =head3 PlackX::Framework
 
 PlackX::Framework is basically a management module, that is responsible for
-loading required and optional components. It exports one mandatory symbol,
-app(), to the calling package.
+loading required and optional components. It exports one symbol, app(), to
+the calling package.
+
 
 =head3 PlackX::Framework::Handler
 
 PlackX::Framework::Handler is the package responsible for request processing.
 You would not normally have to subclass this module manually unless you would
 like to customize behavior of the framework.
+
 
 =head3 PlackX::Framework::Request
 =head3 PlackX::Framework::Response
@@ -180,16 +184,15 @@ one.
 
 This module exports the request, request_base, and filter functions to give you
 a minimalistic web app controller DSL. You can import this into your main app
-package or separate controller packages.
+package, as shown in the introduction, or separate packages.
 
     # Set up the app
     package MyApp {
       use PlackX::Framework;
-      # You can also use MyApp::Router here...
     }
 
     # Note: the name of your controller module doesn't matter, but it must
-    # import from your subclass, e.g., MyApp::Router, not directly from
+    # import from your router subclass, e.g., MyApp::Router, not directly from
     # PlackX::Framework::Router!
     package MyApp::Controller {
       use MyApp::Router;
@@ -234,11 +237,11 @@ Mainly used internally.
 
 =head1 Why Another Framework?
 
-After converting a mod_perl2 web application to use Plack instead, where
-Plack::Request and Plack::Response replaced Apache2::Request and
-Apache2::Response, I realized I was basically using Plack as a low-level
-framework with some glue code and extra features. That framework has been
-extracted, refactored, and expanded into this product.
+Plack comes with several modules that make it possible to create a bare-bones
+web app, but as described in the documentation for Plack::Request, this is a
+very low-level way to do this. A framework is recommended. This package
+provides a minimalistic framework which takes Plack::Request, Plack::Response,
+and several other modules and ties them together.
 
 The end result is a simple, lightweight framework that is higher level
 than using the raw Plack building blocks, although it does not have as many
@@ -257,27 +260,15 @@ features as other frameworks. Here are some advantages:
 
  - PlackX::Framework has some magic, but not too much. It can be easily
    overriden with subclassing. You can use the bundled router engine
-   or supply your own. You can use Template Toolkit automagically or use
+   or supply your own. You can use Template Toolkit automatically or use
    a different template engine.
 
-If the above isn't enough justification for this module's mere existence,
-then this should be: TIMTOWTDI. The author makes no claims that this framework
-is better than any other framework except for the few trivial ones described
-above.
+The author makes no claims that this framework is better than any other
+framework except for the few trivial metrics described above. It has been
+published to CPAN in the spirit of TIMTOWDI.
 
 
-=head2 Goals and Roadmap
-
-The goal of this project is to continue to be a lightweight framework that
-works closely with the PSGI specification. Future versions may require
-newer versions of perl. It is possible I may rewrite this module to use
-perl's built-in subroutine signatures, the new class feature, and whatever
-the future of perl has in store. If this is done, it may be released under
-a different name such that this module can continue to work with older
-perl versions.
-
-
-=head2 Object Orientation
+=head2 Object Orientation and Magic
 
 PlackX::Framework has an object-oriented design philosophy that uses both
 inheritance and composition to implement its features. Symbols exported are
@@ -348,7 +339,7 @@ plain DBI/SQL.
 
 This module will export the method app, which returns the code reference of
 your app in accordance to the PSGI specification. (This is actually a shortcut
-to ::App->to_app.)
+to [ProjectName]::Handler->to_app.)
 
 
 =head1 DEPENDENCIES
