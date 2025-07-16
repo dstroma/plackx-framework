@@ -14,6 +14,8 @@ sub do_tests {
     package My::Test::App2 {
       use PlackX::Framework;
       use My::Test::App2::Router;
+      # TODO: Currently, an app with no routes breaks!
+      # Add a default route or warn if no routes?
       request '/' => sub ($request, $response) {
         $response->print('Hello world!');
         $response;
