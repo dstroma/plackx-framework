@@ -22,7 +22,7 @@ package PlackX::Framework {
       generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
         if !$loaded and ($options{$module} or $options{':'.lc($module)} or $options{':all'});
     }
-    export_app_namespace($caller, $_) for (required_modules(), optional_modules());
+    export_app_namespace_sub($caller, $_) for (required_modules(), optional_modules());
   }
 
   # Export app() sub to the app's main package
@@ -35,7 +35,7 @@ package PlackX::Framework {
   }
 
   # Export app_namespace() to App::Request, App::Response, etc.
-  sub export_app_namespace ($namespace, $module) {
+  sub export_app_namespace_sub ($namespace, $module) {
     no strict 'refs';
     my $exists = eval $namespace.'::'.$module.'::app_namespace()';
     die "app_namespace(): expected $namespace, got $exists" if $exists and $exists ne $namespace;
