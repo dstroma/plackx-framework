@@ -1,54 +1,50 @@
-use strict;
-use warnings;
-
+#!perl
+use v5.36;
 use Test::More;
-use Try::Tiny;
 
-my $test_app_namespace = 'My::TestApp';
-
-test1();
-test2();
-test3();
-
-$test_app_namespace = 'My::TestApp2';
-
-test4();
-test5();
-test6();
+do_tests();
 done_testing();
 
-###############################################################################
+#######################################################################
 
-sub test1 {
-	# Require PlackX::Framework
-	my $module = 'PlackX::Framework';
-	require_ok($module) or BAIL_OUT "Unable to load $module";
+sub do_tests {
+
+  # use() PlackX::Framework
+  ok(
+    eval qq{
+      package My::Test::App1 {
+        use PlackX::Framework;
+      }
+      1;
+    },
+    'Create an empty app called $test_app_namespace'
+  );
+
+
+  # See if subclasses are automatically created
+  foreach my $auto_class (qw(Handler Request Response Router Router::Engine)) {
+    ok(
+      "My::Test::App1::$auto_class"->isa('PlackX::Framework::'.$auto_class),
+      "$auto_class is automatically created and is subclass of respective PXF class"
+    );
+
+    ok(
+      "My::Test::App1::$auto_class"->can('app_namespace'),
+      "$auto_class has an app_namespace method"
+    );
+
+    is(
+      "My::Test::App1::$auto_class"->app_namespace => 'My::Test::App1',
+       "$auto_class app_namespace method returns correct name"
+    );
+
+  }
+
 }
 
-sub test2 {
-	# use() PlackX::Framework
-	ok(
-		eval qq{
-			package $test_app_namespace {
-				use PlackX::Framework;
-			}
-			1;
-		} or die $@,
-		"Create an empty app called $test_app_namespace"
-	);
-}
+=pod
 
-sub test3 {
-	# See if subclasses are automatically created
-	foreach my $auto_class (qw(Handler Request Response Router Router::Engine)) {
-		my $dummy_obj = bless [], $test_app_namespace . '::' . $auto_class;
-		my $parent    = 'PlackX::Framework::' . $auto_class;
-		ok($dummy_obj->isa($parent) => "Assert auto-created class $test_app_namespace is subclass of $parent");
-	}
-}
 
-sub test4 {
-	# Add a handler for requests to /
 	ok(
 		eval qq{
 			package $test_app_namespace {
@@ -128,4 +124,3 @@ sub test_env {
 		'REQUEST_URI' => '/'
 	};
 }
-
