@@ -1,8 +1,18 @@
 use v5.40;
 use Module::Loaded ();
 package PlackX::Framework {
-  sub required_modules { qw(Handler Request Response Router Router::Engine) }
-  sub optional_modules { qw(URIx Template) }
+  use constant REQUIRED => true;
+  use constant OPTIONAL => false;
+  our %MODULES => (
+    'Handler'        => REQUIRED,
+    'Request'        => REQUIRED,
+    'Response'       => REQUIRED,
+    'Router'         => REQUIRED,
+    'Router::Engine' => REQUIRED,
+    'Config'         => OPTIONAL,
+    'Template'       => OPTIONAL,
+    'URIx'           => OPTIONAL,
+  );
 
   # Export ->app and load parent classes and load or create subclasses
   sub import (@options) {
@@ -11,18 +21,19 @@ package PlackX::Framework {
     export_app_sub($caller);
 
     # Load or create required modules, attempt to load optional ones
-    foreach my $module (required_modules()) {
-      eval 'require PlackX::Framework::'.$module or die $@; # Load parent or die
-      my $loaded = eval 'require '.$caller.'::'.$module;    # Load subclass maybe
-      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
-        if !$loaded;
+    foreach my $module (keys %MODULES) {
+      eval 'require PlackX::Framework::'.$module or die $@ if $MODULES{$module} == REQUIRED;
+
+      unless (eval 'require '.$caller.'::'.$module) {
+        generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
+          if $MODULES{$module} == REQUIRED or (
+            $options{$module} or $options{':'.lc($module)} or $options{':all'}
+          );
+      }
+
+      export_app_namespace_sub($caller, $module)
+       if Module::Loaded::is_loaded($caller.'::'.$module);
     }
-    foreach my $module (optional_modules()) {
-      my $loaded = eval 'require '.$caller.'::'.$module;    # Load subclass maybe
-      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
-        if !$loaded and ($options{$module} or $options{':'.lc($module)} or $options{':all'});
-    }
-    export_app_namespace_sub($caller, $_) for (required_modules(), optional_modules());
   }
 
   # Export app() sub to the app's main package
@@ -35,11 +46,13 @@ package PlackX::Framework {
   }
 
   # Export app_namespace() to App::Request, App::Response, etc.
-  sub export_app_namespace_sub ($namespace, $module) {
+  sub maybe_export_app_namespace_sub ($namespace, $module) {
+    return unless Module::Loaded::is_loaded($namespace.'::'.$module);
     no strict 'refs';
     my $exists = eval $namespace.'::'.$module.'::app_namespace()';
     die "app_namespace(): expected $namespace, got $exists" if $exists and $exists ne $namespace;
     *{$namespace.'::'.$module.'::app_namespace'} = sub { $namespace } unless $exists;
+    return;
   }
 
   # Helper to create a subclass and mark as loaded
