@@ -4,7 +4,7 @@ package PlackX::Framework::Config {
 
   sub import ($class, @options) {
     my $caller = caller(0);
-    my $file   = shift @options;
+    my $file   = shift @options || $ENV{uc $class . '_CONFIG'};
     my $config = eval {
       Config::Any->load_files({
         files   => [$file],
@@ -30,3 +30,6 @@ Usage Example:
 
     my $value = config->{key}{subkey};
   }
+
+This module is offered as a convenience to the user, and is not used to
+configure PlackX::Framework directly.
