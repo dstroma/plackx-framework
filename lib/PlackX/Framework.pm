@@ -6,9 +6,9 @@ package PlackX::Framework {
 
   # Export ->app and load parent classes and load or create subclasses
   sub import (@options) {
-    state %required = map { $_ => 1 } required_modules();
-    my %options     = map { $_ => 1 } @options;
-    my $caller      = caller(0);
+    my %required = map { $_ => 1 } required_modules();
+    my %options  = map { $_ => 1 } @options;
+    my $caller   = caller(0);
     export_app_sub($caller);
 
     # Load or create required modules, attempt to load optional ones
