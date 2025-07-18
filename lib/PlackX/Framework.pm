@@ -23,8 +23,9 @@ package PlackX::Framework {
           if $required{$module} or $options{$module} or $options{':'.lc($module)}
              or $options{':all'};
       };
+      export_app_namespace_sub($caller, $module)
+        if Module::Loaded::is_loaded($caller.'::'.$module);
     }
-    export_app_namespace_sub($caller, $_) for (required_modules(), optional_modules());
   }
 
   # Export app() sub to the app's main package
