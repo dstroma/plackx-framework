@@ -11,16 +11,22 @@ package PlackX::Framework {
     export_app_sub($caller);
 
     # Load or create required modules, attempt to load optional ones
+    # We want to distinguish between modules not loading because they don't
+    # exist versus modules that exist but failed to load because of errors
     foreach my $module (required_modules()) {
-      eval 'require PlackX::Framework::'.$module or die $@; # Load parent or die
-      my $loaded = eval 'require '.$caller.'::'.$module;    # Load subclass maybe
-      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
-        if !$loaded;
+      eval 'require PlackX::Framework::'.$module
+        or die $@;
+      eval 'require '.$caller.'::'.$module or do {
+        die $@ if module_load_error($caller.'::'.$module);
+        generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module);
+      };
     }
     foreach my $module (optional_modules()) {
-      my $loaded = eval 'require '.$caller.'::'.$module;    # Load subclass maybe
-      generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
-        if !$loaded and ($options{$module} or $options{':'.lc($module)} or $options{':all'});
+      eval 'require '.$caller.'::'.$module or do {
+        die $@ if module_load_error($caller.'::'.$module);
+        generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
+          if $options{$module} or $options{':'.lc($module)} or $options{':all'};
+      };
     }
     export_app_namespace_sub($caller, $_) for (required_modules(), optional_modules());
   }
@@ -48,6 +54,15 @@ package PlackX::Framework {
       package $new_class { use parent '$parent_class' }
       return Module::Loaded::mark_as_loaded('$new_class');
     } or die "Cannot create class: $@";
+  }
+
+  sub module_load_error ($name) {
+    my $pm = module_name_to_file($name);
+    exists $INC{$pm} and !defined $INC{$pm}
+  }
+
+  sub module_name_to_file ($name) {
+    Module::Loaded->_pm_to_file($name)
   }
 }
 
