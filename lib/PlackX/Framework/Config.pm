@@ -1,34 +1,93 @@
 use v5.40;
 package PlackX::Framework::Config {
-  use Config::Any;
+  use Carp qw(croak);
 
   sub import ($class, @options) {
-    my $caller = caller(0);
-    my $file   = shift @options || $ENV{uc $class . '_CONFIG'};
-    my $config = eval {
-      Config::Any->load_files({
-        files   => [$file],
-        use_ext => 1,
-      })->[0]->{$file}
-    } or die "Unable to load config file $file via Config::Any:\n$@";
+    my ($namespace) = $class =~ m/^(.+)::Config/;
+    my $env_prefix  = _class_to_env_key($class);
+    my $fn = shift @options || $ENV{$env_prefix.'_CONFIG'};
 
+    croak "$class - Config file $fn does not exist"
+      unless $fn and -e $fn;
+
+    my $type = eval {
+      no warnings;
+      return 'pl' if lc(substr($fn, -3, 3)) eq '.pl';
+      return 'pl' if $ENV{$env_prefix.'_CONFIG_TYPE'} =~ m/^PL|PERL$/i;
+      return '';
+    };
+
+    my $config     = $type eq 'pl' ? $class->load_pl_config($fn) : $class->load_other_config($fn);
     my $config_sub = sub { $config };
-    { no strict 'refs';
-      *{$caller.'::config'}         = $config_sub;
-      *{$caller.'::Config::config'} = $config_sub;
-    }
+
+    no strict 'refs';
+    *{$namespace.'::config'}         = $config_sub;
+    *{$namespace.'::Config::config'} = $config_sub;
+    return;
   }
+
+  sub _class_to_env_key ($name) {
+    # My::WebApp because MY_WEBAPP
+    $name =~ s/::/_/g;
+    return uc($name);
+  }
+
+  sub load_pl_config ($class, $fn) {
+    local @INC = ();
+    my $result = do $fn;
+    croak "$class - Error reading config file $fn:\n$!"
+      unless $result;
+    croak "$class - Config file $fn did not return a hashref"
+      unless ref $result and ref $result eq 'HASH';
+    return $result;
+  }
+
+  sub load_other_config ($class, $fn) {
+    my $result = eval {
+      require Config::Any;
+      Config::Any->load_files({
+        files   => [$fn],
+        use_ext => 1,
+      })->[0]->{$fn};
+    };
+    croak "$class - Error reading config file $fn:\n$@$!"
+      unless $result;
+    croak "$class - Config file $fn did not result in a hashref"
+      unless ref $result and ref $result eq 'HASH';
+    return $result;
+  }
+
 }
 
 =pod
 
-Usage Example:
+This module is offered as a convenience to the user, and is not used to
+configure PlackX::Framework directly.
+
+It will load and parse the specific configuration file and make the resulting
+data structure available in a config() method/functino of your application's
+main class, and also a ::Config class.
+
+IMPORT: This module does NOT export the config() function to the caller, but
+rather to your application's namespace! See the examples below for
+clarification!
+
+Option one is to have PXF automatically generate your ::Config subclass.
+
+Store your config filename in an environment variable, in accordance with the
+convention described below:
+
+  My::Web::App => $ENV{'MY_WEB_APP_CONFIG'}
+
+or pass it in your use statement.
+
+Example 1:
 
   package My::WebApp {
     use PlackX::Framework qw(:config);
     use My::WebApp::Config '/path/to/config_file';
 
-    my $value = config->{key}{subkey};
+    my $some_value = config->{some_key};
 
     # May also be written as:
     #   My::WebApp->config
@@ -37,5 +96,45 @@ Usage Example:
     #   My::WebApp::Config::config()
   }
 
-This module is offered as a convenience to the user, and is not used to
-configure PlackX::Framework directly.
+Alternatively, create an empty ::Config subclass. This technique must be used
+if you want to load your configuration before loading the rest of your app.
+
+Example 2:
+
+  # You must crate an empty sublcass of PlackX::Framework::Config!
+  # It MUST be named [NameOfApp]::Config!
+
+  # My/WebApp/Config.pm:
+  package My::WebApp::Config {
+    use parent 'PlackX::Framework::Config';
+  }
+
+  # My/WebApp.pm
+  package My::WebApp {
+    use PlackX::Framework;
+    use My::WebApp::Router;
+    use Data::Dumper;
+    request '/' => sub ($request, $response) {
+      $response->print(Dumper config());
+    }
+  }
+
+  # app.psgi
+  use My::WebApp::Config '/path/to/config_file';
+  use My::WebApp;
+
+If the config file ends in .pl or if $ENV{MYAPP_CONFIG_TYPE} is set to
+'PERL', or 'PL', this module will use perl to "do" the file and return
+a perl data structure; otherwise Config::Any will be loaded to attempt
+to parse the file based on its extension.
+
+If you would like to write your own custom config-file parsing routine,
+override load_other_config() in your ::Config subclass.
+
+  package My::WebApp::Config {
+    use parent 'PlackX::Framework::Config';
+    sub load_other_config ($class, $fname) {
+      require My::JS::Module;
+      My::JS::Module->decode($fname);
+    }
+  }
