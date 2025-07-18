@@ -6,26 +6,22 @@ package PlackX::Framework {
 
   # Export ->app and load parent classes and load or create subclasses
   sub import (@options) {
-    my %options = map { $_ => 1 } @options;
-    my $caller  = caller(0);
+    state %required = map { $_ => 1 } required_modules();
+    my %options     = map { $_ => 1 } @options;
+    my $caller      = caller(0);
     export_app_sub($caller);
 
     # Load or create required modules, attempt to load optional ones
     # We want to distinguish between modules not loading because they don't
     # exist versus modules that exist but failed to load because of errors
-    foreach my $module (required_modules()) {
+    foreach my $module (required_modules(), optional_modules()) {
       eval 'require PlackX::Framework::'.$module
-        or die $@;
+        or die $@ if $required{$module};
       eval 'require '.$caller.'::'.$module or do {
-        die $@ if module_load_error($caller.'::'.$module);
-        generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module);
-      };
-    }
-    foreach my $module (optional_modules()) {
-      eval 'require '.$caller.'::'.$module or do {
-        die $@ if module_load_error($caller.'::'.$module);
+        die $@ if module_broken($caller.'::'.$module);
         generate_subclass($caller.'::'.$module, 'PlackX::Framework::'.$module)
-          if $options{$module} or $options{':'.lc($module)} or $options{':all'};
+          if $required{$module} or $options{$module} or $options{':'.lc($module)}
+             or $options{':all'};
       };
     }
     export_app_namespace_sub($caller, $_) for (required_modules(), optional_modules());
@@ -56,14 +52,8 @@ package PlackX::Framework {
     } or die "Cannot create class: $@";
   }
 
-  sub module_load_error ($name) {
-    my $pm = module_name_to_file($name);
-    exists $INC{$pm} and !defined $INC{$pm}
-  }
-
-  sub module_name_to_file ($name) {
-    Module::Loaded->_pm_to_file($name)
-  }
+  sub module_broken  ($name) { my $f=module_to_file($name); exists $INC{$f} and !defined $INC{$f} }
+  sub module_to_file ($name) { Module::Loaded->_pm_to_file($name) }
 }
 
 =pod

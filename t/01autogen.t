@@ -21,7 +21,7 @@ sub do_tests {
   );
 
 
-  # See if subclasses are automatically created
+  # See if required subclasses are automatically created
   foreach my $auto_class (qw(Handler Request Response Router Router::Engine)) {
     ok(
       "My::Test::App1::$auto_class"->isa('PlackX::Framework::'.$auto_class),
