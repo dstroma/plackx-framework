@@ -61,6 +61,41 @@ sub do_tests {
     'Calling Handler->to_app->() and App->app->() gives same result'
   );
 
+  # use() PlackX::Framework with all optional modules
+  eval q{
+    package My::Test::App2b {
+      use PlackX::Framework qw(:config);
+      use My::Test::App2b::Router;
+      use My::Test::App2b::Config 't/config.pl';
+      my $config = config();
+      # TODO: Currently, an app with no routes breaks!
+      # Add a default route or warn if no routes?
+      request '/' => sub ($request, $response) {
+        $response->print('Hello world!');
+        $response;
+      };
+    }
+    1;
+  } or die "Problem setting up test with config: $@";
+
+  ok(
+    My::Test::App2b->config,
+    'New app has a config() method'
+  );
+
+  is(
+    ref My::Test::App2b->config => 'HASH',
+    'Config method returns expected data structure'
+  );
+
+  is(
+    My::Test::App2b->config->{key2} => 'value2',
+    'Config file contains expected data'
+  );
+
+  use Data::Dumper;
+  warn Dumper My::Test::App2b->config;
+
 }
 
 #######################################################################

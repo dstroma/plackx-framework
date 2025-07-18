@@ -2,7 +2,7 @@ use v5.40;
 use Module::Loaded ();
 package PlackX::Framework {
   sub required_modules { qw(Handler Request Response Router Router::Engine) }
-  sub optional_modules { qw(URIx Template) }
+  sub optional_modules { qw(URIx Template Config) }
 
   # Export ->app and load parent classes and load or create subclasses
   sub import (@options) {
