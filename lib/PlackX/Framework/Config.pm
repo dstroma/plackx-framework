@@ -29,6 +29,12 @@ Usage Example:
     use My::WebApp::Config '/path/to/config_file';
 
     my $value = config->{key}{subkey};
+
+    # May also be written as:
+    #   My::WebApp->config
+    #   My::WebApp::config()
+    #   My::WebApp::Config->config
+    #   My::WebApp::Config::config()
   }
 
 This module is offered as a convenience to the user, and is not used to
